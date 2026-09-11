@@ -9,15 +9,12 @@ jobs:
   test-production:
     runs-on: ubuntu-latest
     steps:
-      - name: Check homepage serves secure form
+      - name: Check homepage serves secure handler
         run: |
           set -e
           html=$(curl -fsSL https://azarbio-wholesale.vercel.app/)
           echo "$html" | grep -q "معلوماتك كتترسل عبر اتصال آمن" || { echo "SECURE_PAGE_MARKER_MISSING"; exit 11; }
-          if echo "$html" | grep -q "خاص إضافة رابط Make webhook الحقيقي"; then
-            echo "OLD_FORM_STILL_SERVED"
-            exit 12
-          fi
+          echo "$html" | grep -q "fetch('/api/lead'" || { echo "SECURE_HANDLER_MISSING"; exit 12; }
           echo "SECURE_PAGE_OK"
 
       - name: POST lead through Vercel API
