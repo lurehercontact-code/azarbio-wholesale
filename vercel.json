@@ -1,7 +1,7 @@
 {
   "routes": [
-    { "src": "^/$", "dest": "/api/page" },
-    { "src": "^/index\\.html$", "dest": "/api/page" },
+    { "src": "^/$", "dest": "/api/page-success" },
+    { "src": "^/index\\.html$", "dest": "/api/page-success" },
     { "handle": "filesystem" }
   ]
 }
