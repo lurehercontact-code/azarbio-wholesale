@@ -1,0 +1,34 @@
+name: AzarBio Production Diagnostic
+
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnostic.yml'
+
+jobs:
+  test-production:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check homepage serves secure form
+        run: |
+          set -e
+          html=$(curl -fsSL https://azarbio-wholesale.vercel.app/)
+          echo "$html" | grep -q "معلوماتك كتترسل عبر اتصال آمن" || { echo "SECURE_PAGE_MARKER_MISSING"; exit 11; }
+          if echo "$html" | grep -q "خاص إضافة رابط Make webhook الحقيقي"; then
+            echo "OLD_FORM_STILL_SERVED"
+            exit 12
+          fi
+          echo "SECURE_PAGE_OK"
+
+      - name: POST lead through Vercel API
+        run: |
+          set -e
+          status=$(curl -sS -o /tmp/response.json -w "%{http_code}" \
+            -X POST https://azarbio-wholesale.vercel.app/api/lead \
+            -H 'Content-Type: application/json' \
+            --data '{"name":"TEST E2E AzarBio","phone":"0600000000","city":"Casablanca","business_type":"E-commerce","offer_package":"1KG","notes":"Automated production diagnostic"}')
+          echo "HTTP_STATUS=$status"
+          cat /tmp/response.json
+          test "$status" = "200"
+          grep -q '"ok":true' /tmp/response.json
+          echo "LEAD_API_OK"
