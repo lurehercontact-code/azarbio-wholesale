@@ -24,12 +24,9 @@ export default function handler(req, res) {
     'معلوماتك كتترسل عبر اتصال آمن ومخصصة فقط لمعالجة طلبك والتواصل معك.'
   );
 
-  if (!html.includes('name="website"')) {
-    html = html.replace(
-      '<form id="leadForm">',
-      '<form id="leadForm" autocomplete="on"><input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:1px;width:1px">'
-    );
-  }
+  // Remove any previous hidden honeypot. Some mobile/browser autofill tools can fill it
+  // automatically and make legitimate requests look like bots.
+  html = html.replace(/<input[^>]+name=["']website["'][^>]*>/gi, '');
 
   const secureHandler = `
 <script>
@@ -66,17 +63,17 @@ export default function handler(req, res) {
 
       const response = await fetch('/api/lead', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         credentials: 'same-origin',
+        cache: 'no-store',
         body: JSON.stringify(data)
       });
 
       let result = {};
       try { result = await response.json(); } catch (_) {}
 
-      if (!response.ok || !result.ok) {
-        const code = result && result.error ? result.error : 'request_failed';
-        throw new Error(code);
+      if (!response.ok || result.ok !== true) {
+        throw new Error(result.error || ('http_' + response.status));
       }
 
       statusEl.textContent = 'تم إرسال طلبك بنجاح. سنتواصل معك قريباً.';
@@ -84,7 +81,17 @@ export default function handler(req, res) {
       form.reset();
     } catch (error) {
       console.error('AzarBio lead submit failed:', error && error.message ? error.message : error);
-      statusEl.textContent = 'تعذر إرسال الطلب حالياً. حاول مرة أخرى بعد قليل.';
+      const code = error && error.message ? error.message : '';
+      const messages = {
+        invalid_name: 'المرجو إدخال الاسم بشكل صحيح.',
+        invalid_phone: 'المرجو إدخال رقم هاتف صحيح.',
+        invalid_offer: 'المرجو إعادة اختيار العرض.',
+        too_many_requests: 'تم إرسال محاولات كثيرة. انتظر دقيقة وحاول من جديد.',
+        service_not_configured: 'خدمة استقبال الطلبات غير مفعلة حالياً.',
+        upstream_error: 'تعذر تسجيل الطلب حالياً. حاول بعد قليل.',
+        upstream_unavailable: 'تعذر الاتصال بخدمة تسجيل الطلبات حالياً.'
+      };
+      statusEl.textContent = messages[code] || 'تعذر إرسال الطلب حالياً. حاول مرة أخرى بعد قليل.';
       statusEl.classList.add('error');
     } finally {
       if (submitButton) {
