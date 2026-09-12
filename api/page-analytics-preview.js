@@ -1,18 +1,14 @@
 import baseHandler from './page-meta.js';
 
-function widenClarityCsp(value) {
-  if (typeof value !== 'string') return value;
-  return value
-    .replace("default-src 'self'", "default-src 'self' https://*.clarity.ms https://c.bing.com")
-    .replace("https://www.clarity.ms", "https://www.clarity.ms https://*.clarity.ms https://c.bing.com")
-    .replace("https://*.clarity.ms", "https://*.clarity.ms https://c.bing.com");
-}
-
+// Temporary diagnostic wrapper for the analytics-preview branch only.
+// We intentionally remove CSP on this preview so we can isolate whether
+// Microsoft Clarity is being blocked by the site's security policy.
+// Production is untouched.
 export default function handler(req, res) {
   const originalSetHeader = res.setHeader.bind(res);
   res.setHeader = (name, value) => {
     if (String(name).toLowerCase() === 'content-security-policy') {
-      value = widenClarityCsp(value);
+      return res;
     }
     return originalSetHeader(name, value);
   };
