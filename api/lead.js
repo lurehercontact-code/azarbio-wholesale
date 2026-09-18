@@ -1,20 +1,23 @@
 const ALLOWED_OFFERS = {
-  '1KG': { unit: 199, total: 199 },
-  '2.5KG': { unit: 179, total: 447.5 },
-  '5KG': { unit: 149, total: 745 },
-  '10KG': { unit: 145, total: 1450 },
+  '2.5KG': { unit: 179, productTotal: 447.5 },
+  '5KG': { unit: 159.8, productTotal: 799 },
+  '10KG': { unit: 145, productTotal: 1450 },
 };
 
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX = 8;
-const rateStore = globalThis.__azarbioRateStore || new Map();
-globalThis.__azarbioRateStore = rateStore;
+const RATE_WINDOW_MS = 10 * 60_000;
+const RATE_MAX = 4;
+const PHONE_WINDOW_MS = 30 * 60_000;
+const PHONE_MAX = 2;
+const PROMO_MS = 2 * 60 * 60 * 1000;
+const PROMO_COOKIE = 'az_promo_start';
+
+const rateStore = globalThis.__azarbioRateStoreV2 || new Map();
+const phoneStore = globalThis.__azarbioPhoneStoreV2 || new Map();
+globalThis.__azarbioRateStoreV2 = rateStore;
+globalThis.__azarbioPhoneStoreV2 = phoneStore;
 
 function clean(value, max = 200) {
-  return String(value ?? '')
-    .replace(/[\u0000-\u001F\u007F]/g, ' ')
-    .trim()
-    .slice(0, max);
+  return String(value ?? '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, max);
 }
 
 function sendJson(res, status, body) {
@@ -26,19 +29,46 @@ function sendJson(res, status, body) {
 }
 
 function parseBody(req) {
-  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
-    return req.body;
-  }
-
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
   if (typeof req.body === 'string') {
     try { return JSON.parse(req.body); } catch (_) { return null; }
   }
-
   if (Buffer.isBuffer(req.body)) {
     try { return JSON.parse(req.body.toString('utf8')); } catch (_) { return null; }
   }
-
   return null;
+}
+
+function normalizeMoroccanMobile(value) {
+  let digits = String(value ?? '').replace(/\D/g, '');
+  if (digits.startsWith('00212')) digits = digits.slice(5);
+  if (digits.startsWith('212')) digits = digits.slice(3);
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  if (!/^[67]\d{8}$/.test(digits)) return '';
+  return '0' + digits;
+}
+
+function touchWindow(store, key, now, windowMs, limit) {
+  const recent = (store.get(key) || []).filter((time) => now - time < windowMs);
+  if (recent.length >= limit) return false;
+  recent.push(now);
+  store.set(key, recent);
+  return true;
+}
+
+function readCookie(req, name) {
+  const raw = String(req.headers.cookie || '');
+  for (const part of raw.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(rest.join('='));
+  }
+  return '';
+}
+
+function shippingForRequest(req, now) {
+  const startedAt = Number(readCookie(req, PROMO_COOKIE));
+  if (!Number.isFinite(startedAt) || startedAt <= 0 || startedAt > now + 60_000) return 35;
+  return now - startedAt <= PROMO_MS ? 0 : 35;
 }
 
 export default async function handler(req, res) {
@@ -52,65 +82,77 @@ export default async function handler(req, res) {
     return sendJson(res, 415, { ok: false, error: 'invalid_content_type' });
   }
 
-  const ip = clean(
-    String(req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown',
-    80
-  );
-
-  const now = Date.now();
-  const recent = (rateStore.get(ip) || []).filter((time) => now - time < RATE_WINDOW_MS);
-  if (recent.length >= RATE_MAX) {
-    return sendJson(res, 429, { ok: false, error: 'too_many_requests' });
-  }
-  recent.push(now);
-  rateStore.set(ip, recent);
-
   const body = parseBody(req);
-  if (!body) {
-    return sendJson(res, 400, { ok: false, error: 'invalid_json' });
+  if (!body) return sendJson(res, 400, { ok: false, error: 'invalid_json' });
+
+  if (clean(body.website, 120) || clean(body.company_website, 120)) {
+    return sendJson(res, 200, { ok: true, ignored: true });
   }
 
-  // Honeypot for simple bots.
-  if (clean(body.website, 120) || clean(body.company_website, 120)) {
-    return sendJson(res, 200, { ok: true });
+  const ip = clean(String(req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown', 80);
+  const now = Date.now();
+
+  if (!touchWindow(rateStore, ip, now, RATE_WINDOW_MS, RATE_MAX)) {
+    return sendJson(res, 429, { ok: false, error: 'too_many_requests' });
   }
 
   const name = clean(body.name, 100);
-  const phone = clean(body.phone, 32);
+  const phone = normalizeMoroccanMobile(body.phone);
   const city = clean(body.city, 80);
-  const businessType = clean(body.business_type, 80);
+  const address = clean(body.address, 220);
+  const businessType = clean(body.business_type, 100);
   const offerPackage = clean(body.offer_package, 16);
   const notes = clean(body.notes, 800);
+  const consentOrder = clean(body.consent_order, 10);
+  const elapsedMs = Number(body.client_elapsed_ms || 0);
 
-  if (name.length < 2) {
-    return sendJson(res, 400, { ok: false, error: 'invalid_name' });
+  if (name.length < 2) return sendJson(res, 400, { ok: false, error: 'invalid_name' });
+  if (!phone) return sendJson(res, 400, { ok: false, error: 'invalid_phone' });
+  if (city.length < 2) return sendJson(res, 400, { ok: false, error: 'invalid_city' });
+  if (address.length < 5) return sendJson(res, 400, { ok: false, error: 'invalid_address' });
+  if (businessType.length < 2) return sendJson(res, 400, { ok: false, error: 'invalid_business_type' });
+  if (!ALLOWED_OFFERS[offerPackage]) return sendJson(res, 400, { ok: false, error: 'invalid_offer' });
+  if (consentOrder !== 'yes') return sendJson(res, 400, { ok: false, error: 'consent_required' });
+  if (Number.isFinite(elapsedMs) && elapsedMs > 0 && elapsedMs < 2500) {
+    return sendJson(res, 400, { ok: false, error: 'too_fast' });
   }
-  if (phone.replace(/\D/g, '').length < 8) {
-    return sendJson(res, 400, { ok: false, error: 'invalid_phone' });
-  }
-  if (!ALLOWED_OFFERS[offerPackage]) {
-    return sendJson(res, 400, { ok: false, error: 'invalid_offer' });
+
+  if (!touchWindow(phoneStore, phone, now, PHONE_WINDOW_MS, PHONE_MAX)) {
+    return sendJson(res, 409, { ok: false, error: 'duplicate_phone' });
   }
 
   const offer = ALLOWED_OFFERS[offerPackage];
+  const shippingFee = shippingForRequest(req, now);
+  const orderTotal = offer.productTotal + shippingFee;
+  const shippingText = shippingFee === 0 ? 'مجاني ضمن عرض الساعتين' : '35 درهم';
+
   const payload = {
     submitted_at: new Date().toISOString(),
+    form_version: 'landing-v2',
     name,
     phone,
     city,
+    address,
     business_type: businessType,
     offer_package: offerPackage,
     offer_quantity_kg: offerPackage.replace('KG', ''),
     offer_unit_price: String(offer.unit),
-    offer_total: String(offer.total),
-    source: 'AzarBio Landing Page',
+    offer_product_total: String(offer.productTotal),
+    shipping_fee: String(shippingFee),
+    offer_total: String(orderTotal),
+    source: 'AzarBio Landing Page V2',
     utm_source: clean(body.utm_source, 120),
     utm_medium: clean(body.utm_medium, 120),
     utm_campaign: clean(body.utm_campaign, 160),
     utm_content: clean(body.utm_content, 160),
     utm_term: clean(body.utm_term, 160),
     landing_page: clean(body.landing_page || req.headers.referer || '', 500),
-    notes,
+    consent_order: 'yes',
+    notes: [
+      'العنوان: ' + address,
+      'التوصيل: ' + shippingText,
+      notes ? 'ملاحظة: ' + notes : ''
+    ].filter(Boolean).join(' | '),
   };
 
   const webhook = String(process.env.MAKE_WEBHOOK_URL || '').trim();
@@ -127,7 +169,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'AzarBio-Vercel-Lead-Proxy/1.1',
+        'User-Agent': 'AzarBio-Vercel-Lead-Proxy/2.1',
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
@@ -140,7 +182,12 @@ export default async function handler(req, res) {
       return sendJson(res, 502, { ok: false, error: 'upstream_error' });
     }
 
-    return sendJson(res, 200, { ok: true });
+    return sendJson(res, 200, {
+      ok: true,
+      offer_package: offerPackage,
+      shipping_fee: shippingFee,
+      order_total: orderTotal
+    });
   } catch (error) {
     console.error('AzarBio: lead proxy failed', error?.name || '', error?.message || error);
     return sendJson(res, 502, { ok: false, error: 'upstream_unavailable' });
