@@ -24,7 +24,7 @@ function enhanceCsp(value) {
 function injectAnalytics(html) {
   if (!html || html.includes('id="azarbio-analytics-suite"')) return html;
 
-  const preload = '<link rel="preload" as="image" href="/azarbio-hero.webp" type="image/webp" fetchpriority="high">';
+  const preload = '';
   const analytics = `
   <script id="azarbio-analytics-suite">
     (() => {
