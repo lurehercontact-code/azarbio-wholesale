@@ -6,8 +6,10 @@ const ALLOWED_OFFERS = {
 
 const RATE_WINDOW_MS = 10 * 60_000;
 const RATE_MAX = 4;
-const PHONE_WINDOW_MS = 30 * 60_000;
-const PHONE_MAX = 2;
+const PHONE_WINDOW_MS = 3 * 24 * 60 * 60_000;
+const PHONE_MAX = 1;
+const ORDER_PENDING_MS = 3 * 24 * 60 * 60_000;
+const ORDER_PENDING_COOKIE = 'az_order_pending';
 const PROMO_MS = 2 * 60 * 60 * 1000;
 const PROMO_COOKIE = 'az_promo_start';
 
@@ -181,11 +183,17 @@ export default async function handler(req, res) {
       return sendJson(res, 502, { ok: false, error: 'upstream_error' });
     }
 
+    res.setHeader(
+      'Set-Cookie',
+      ORDER_PENDING_COOKIE + '=' + now + '; Path=/; Max-Age=259200; HttpOnly; Secure; SameSite=Lax'
+    );
+
     return sendJson(res, 200, {
       ok: true,
       offer_package: offerPackage,
       shipping_fee: shippingFee,
-      order_total: orderTotal
+      order_total: orderTotal,
+      order_pending_days: 3
     });
   } catch (error) {
     console.error('AzarBio: lead proxy failed', error?.name || '', error?.message || error);
