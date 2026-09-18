@@ -77,7 +77,7 @@ function injectAnalytics(html) {
       const form = document.getElementById('leadForm');
       let formStarted = false;
 
-      document.querySelectorAll('.offer').forEach(card => {
+      document.querySelectorAll('.offer-card').forEach(card => {
         card.addEventListener('click', () => {
           const offer = String(card.dataset.offer || '');
           gaEvent('offer_selected', {
