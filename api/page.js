@@ -1,24 +1,43 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
 const OFFERS = {
-  '2.5KG': { label: 'عرض البداية', qty: '2.5 كغ', unit: '179 درهم/كغ', total: '447.5 درهم', note: 'مناسب للتجربة وبداية إعادة البيع' },
-  '5KG': { label: 'عرض التاجر', qty: '5 كغ', unit: '160 درهم/كغ', total: '799 درهم', note: 'توازن أفضل بين الكمية والسعر' },
-  '10KG': { label: 'أفضل سعر للكيلو', qty: '10 كغ', unit: '145 درهم/كغ', total: '1450 درهم', note: 'للتجار والطلبات الأكبر' }
+  '2.5KG': { label: 'عرض البداية', qty: '2.5 كغ', unit: 179, productTotal: 447.5, note: 'مناسب لأول تجربة وإعادة البيع' },
+  '5KG': { label: 'عرض التاجر', qty: '5 كغ', unit: 159.8, productTotal: 799, note: 'كمية أكبر وسعر/كغ أقل' },
+  '10KG': { label: 'أفضل سعر للكيلو', qty: '10 كغ', unit: 145, productTotal: 1450, note: 'للمحلات والطلبات الأكبر' }
 };
 
-function pickImages(source) {
-  const images = [...source.matchAll(/<img\s+[^>]*src="([^"]+)"[^>]*>/gi)].map((m) => m[1]);
-  return { hero: images[4] || images[0] || '', detail: images[0] || images[1] || '' };
+const PROMO_MS = 2 * 60 * 60 * 1000;
+const PROMO_COOKIE = 'az_promo_start';
+
+function readCookie(req, name) {
+  const raw = String(req.headers.cookie || '');
+  for (const part of raw.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(rest.join('='));
+  }
+  return '';
+}
+
+function promoState(req, res) {
+  const now = Date.now();
+  let startedAt = Number(readCookie(req, PROMO_COOKIE));
+  const maxPast = 30 * 24 * 60 * 60 * 1000;
+  if (!Number.isFinite(startedAt) || startedAt <= 0 || startedAt > now + 60_000 || now - startedAt > maxPast) {
+    startedAt = now;
+    res.setHeader('Set-Cookie', PROMO_COOKIE + '=' + startedAt + '; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax');
+  }
+  return { startedAt, deadline: startedAt + PROMO_MS };
 }
 
 function securityHeaders(res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: https://www.facebook.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; img-src 'self' data: https://www.facebook.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  );
 }
 
 export default function handler(req, res) {
@@ -28,108 +47,271 @@ export default function handler(req, res) {
     return res.end();
   }
 
-  const source = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
-  const images = pickImages(source);
   securityHeaders(res);
+  const promo = promoState(req, res);
 
   const html = `<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#123b2b">
-  <meta name="description" content="AzarBio — فواكه مجففة بالتبريد بالجملة للمحلات وإعادة البيع. الطلب ابتداءً من 2.5 كغ.">
-  <title>AzarBio | فواكه مجففة بالتبريد بالجملة</title>
+  <meta name="theme-color" content="#0f4a2d">
+  <meta name="description" content="AzarBio — فواكه مجففة بالتبريد بالجملة للمحلات وإعادة البيع. 6 فواكه في المزيج والطلب ابتداءً من 2.5 كغ.">
+  <title>AzarBio | الفواكه المجففة بالتبريد بالجملة</title>
   <style>
-    :root{--g:#123b2b;--gold:#b48a43;--cream:#faf7f0;--soft:#f0f5f1;--line:#e4e7e3;--ink:#17211b;--muted:#667169;--danger:#a22b2b;--ok:#17673b;--shadow:0 16px 42px rgba(18,59,43,.10)}
-    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#fff;color:var(--ink);font-family:Arial,Tahoma,"Noto Sans Arabic",sans-serif;line-height:1.7;-webkit-font-smoothing:antialiased;padding-bottom:72px}button,input,select,textarea{font:inherit}img{display:block;width:100%;height:auto}a{color:inherit}.wrap{width:min(calc(100% - 24px),1120px);margin:auto}
-    .topbar{background:var(--g);color:#fff;text-align:center;padding:8px 10px;font-size:12px;font-weight:800}.brandrow{display:flex;align-items:center;justify-content:space-between;padding:13px 0}.brand{display:flex;align-items:center;gap:10px;text-decoration:none}.mark{width:42px;height:42px;border-radius:14px;background:var(--g);color:#fff;display:grid;place-items:center;font-size:22px;font-weight:900}.brand b{display:block;color:var(--g);font-size:22px;line-height:1}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
-    .hero{padding:0 0 28px}.hero-media{position:relative;border-radius:0 0 26px 26px;overflow:hidden;background:#e7ece8;box-shadow:var(--shadow)}.hero-media img{aspect-ratio:1/1;object-fit:cover}.hero-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.02) 34%,rgba(7,28,20,.80) 100%)}.hero-copy{position:absolute;right:18px;left:18px;bottom:18px;color:#fff}.hero-kicker{display:inline-flex;background:#fff;color:var(--g);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:900;margin-bottom:8px}.hero h1{font-size:clamp(29px,8.6vw,54px);line-height:1.18;margin:0 0 8px;font-weight:900}.hero h1 em{font-style:normal;color:#f3cf74}.hero-copy p{margin:0;font-size:14px;font-weight:700;opacity:.96}.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.quick div{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:10px 7px;text-align:center;font-size:11px;font-weight:800;color:var(--g);line-height:1.45}
-    .section{padding:38px 0}.section.soft{background:var(--cream)}.title{margin-bottom:20px}.title h2{font-size:27px;line-height:1.3;margin:0 0 6px;color:var(--g)}.title p{margin:0;color:var(--muted);font-size:14px}
-    .offers{display:grid;gap:11px}.offer-card{position:relative;border:2px solid var(--line);background:#fff;border-radius:20px;padding:17px;text-align:right;cursor:pointer;transition:.18s ease}.offer-card.selected{border-color:var(--g);box-shadow:0 0 0 4px rgba(18,59,43,.07)}.offer-card.recommended{border-color:#d7c392;background:linear-gradient(180deg,#fff,#fbf8ef)}.offer-card .badge{position:absolute;left:12px;top:12px;background:var(--g);color:#fff;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900}.offer-card h3{font-size:25px;margin:0;color:var(--g)}.offer-card .label{font-size:13px;color:var(--muted);font-weight:800;margin-top:2px}.money{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}.money strong{font-size:25px;color:var(--ink)}.money small{color:var(--muted);font-weight:800}.offer-card p{font-size:12px;color:var(--muted);margin:9px 0 0}.offer-btn{width:100%;border:0;background:var(--g);color:#fff;border-radius:13px;min-height:47px;font-weight:900;margin-top:13px;cursor:pointer}
-    .formbox{background:#fff;border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:var(--shadow)}.formbox h2{font-size:25px;color:var(--g);margin:0 0 4px}.formbox>p{margin:0 0 17px;color:var(--muted);font-size:13px}.form-grid{display:grid;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:14px;font-weight:900;color:#25352c}.field input,.field select,.field textarea{width:100%;min-height:52px;border:1.5px solid #cfd6d1;border-radius:13px;padding:12px 13px;background:#fff;color:var(--ink);font-size:16px;outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(18,59,43,.08)}.field textarea{min-height:88px;resize:vertical}
-    .selected-offer{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--soft);border:1px solid #d8e5dc;border-radius:15px;padding:12px 13px;margin-bottom:13px}.selected-offer small{display:block;color:var(--muted);font-size:11px}.selected-offer strong{display:block;color:var(--g);font-size:16px}.consent{display:flex;gap:9px;align-items:flex-start;margin:14px 0;color:#39463e;font-size:13px;font-weight:700}.consent input{width:19px;height:19px;flex:0 0 auto;margin-top:2px;accent-color:var(--g)}.primary{width:100%;min-height:54px;border:0;border-radius:14px;background:var(--g);color:#fff;font-weight:900;font-size:16px;cursor:pointer}.primary:disabled{opacity:.58;cursor:not-allowed}
-    .review{display:none;margin-top:15px;background:var(--cream);border:1px solid #e6dac7;border-radius:17px;padding:15px}.review.show{display:block}.review h3{margin:0 0 9px;color:var(--g);font-size:18px}.review-lines{display:grid;gap:6px;font-size:13px}.review-line{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #ddd3c5;padding-bottom:6px}.review-line:last-child{border-bottom:0}.review-actions{display:grid;grid-template-columns:1fr .65fr;gap:8px;margin-top:13px}.secondary{min-height:50px;border:1px solid var(--g);border-radius:13px;background:#fff;color:var(--g);font-weight:900;cursor:pointer}.status{display:none;margin-top:12px;padding:12px;border-radius:13px;font-size:13px}.status.show{display:block}.status.error{background:#fff0f0;color:var(--danger)}.status.success{background:#edf8f0;color:var(--ok)}
-    .proof-grid{display:grid;gap:10px}.proof{background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px}.proof b{display:block;color:var(--g);margin-bottom:3px}.proof span{font-size:13px;color:var(--muted)}.detail{border-radius:22px;overflow:hidden;background:#eee;box-shadow:var(--shadow);margin-bottom:16px}.detail img{aspect-ratio:4/3;object-fit:cover}.audience{display:flex;gap:8px;flex-wrap:wrap}.audience span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 11px;font-size:12px;font-weight:800;color:var(--g)}
-    details{border-bottom:1px solid var(--line);padding:14px 0}summary{font-weight:900;color:var(--g);cursor:pointer}details p{font-size:13px;color:var(--muted);margin:8px 0 0}.wa{background:var(--g);color:#fff;border-radius:22px;padding:20px}.wa h2{margin:0 0 7px;font-size:24px}.wa p{margin:0 0 14px;opacity:.88;font-size:13px}.wa a{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:13px;background:#fff;color:var(--g);text-decoration:none;font-weight:900}footer{padding:25px 0 32px;color:var(--muted);font-size:12px;text-align:center}.sticky{position:fixed;right:0;left:0;bottom:0;z-index:60;background:#fff;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -5px 20px rgba(0,0,0,.08)}.sticky a{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:13px;background:var(--g);color:#fff;text-decoration:none;font-weight:900}.hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important}
-    @media(min-width:760px){body{padding-bottom:0}.sticky{display:none}.hero{padding:18px 0 44px}.hero-media{border-radius:28px}.hero-media img{aspect-ratio:16/7}.hero-copy{right:34px;left:34px;bottom:30px}.hero-copy p{font-size:16px}.quick{grid-template-columns:repeat(3,180px);justify-content:center;margin-top:16px}.offers{grid-template-columns:repeat(3,1fr)}.formbox{padding:25px}.form-grid{grid-template-columns:1fr 1fr}.field.full{grid-column:1/-1}.proof-grid{grid-template-columns:repeat(3,1fr)}.content-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}}
+    :root{
+      --green:#0f4a2d;--green2:#17683e;--green3:#eaf4ed;--gold:#d6aa4d;--gold2:#fff3cf;
+      --cream:#fbf8f1;--ink:#17211b;--muted:#657169;--line:#e3e9e5;--red:#bb2d2d;--white:#fff;
+      --shadow:0 14px 36px rgba(15,74,45,.10);--radius:20px
+    }
+    *{box-sizing:border-box}html{scroll-behavior:smooth}
+    body{margin:0;background:#fff;color:var(--ink);font-family:Arial,Tahoma,"Noto Sans Arabic",sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased;padding-bottom:72px}
+    button,input,select,textarea{font:inherit}button{cursor:pointer}img{display:block;width:100%;height:auto}a{color:inherit}
+    .wrap{width:min(calc(100% - 24px),1120px);margin:auto}
+    .ticker{overflow:hidden;background:var(--green);color:#fff;border-bottom:1px solid rgba(255,255,255,.1)}
+    .ticker-track{display:flex;width:max-content;gap:42px;padding:8px 0;font-size:12px;font-weight:900;white-space:nowrap;animation:ticker 25s linear infinite}
+    .ticker-item{display:flex;gap:42px}
+    .ticker b{color:#ffe49a}
+    @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(50%)}}
+    @media(prefers-reduced-motion:reduce){.ticker-track{animation:none}}
+    .brandrow{display:flex;align-items:center;justify-content:space-between;padding:12px 0}
+    .brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:42px;height:42px;border-radius:14px;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:1000;font-size:21px}.brand b{display:block;color:var(--green);font-size:22px;line-height:1}.brand small{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+    .wholesale-pill{background:var(--gold2);color:#6c4b08;border:1px solid #efd58d;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900}
+    .hero{padding:3px 0 26px}.hero-grid{display:grid;gap:14px}.hero-copy{padding:7px 2px 0}.kicker{display:inline-flex;align-items:center;gap:6px;background:var(--green3);color:var(--green);border:1px solid #d3e8da;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900}
+    h1{font-size:clamp(34px,10vw,62px);line-height:1.12;margin:10px 0 10px;color:var(--green);letter-spacing:-.7px}.gold{color:#a5771c}
+    .lead{font-size:15px;color:#35433a;margin:0 0 12px;font-weight:700}.hero-cta{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.hero-cta a{flex:1;min-width:150px;min-height:50px;border-radius:14px;text-decoration:none;display:flex;align-items:center;justify-content:center;font-weight:900}.cta-main{background:var(--green);color:#fff}.cta-ghost{border:1px solid var(--green);color:var(--green);background:#fff}
+    .hero-media{position:relative;overflow:hidden;border-radius:24px;background:#eee;box-shadow:var(--shadow)}.hero-media img{aspect-ratio:1/1;object-fit:cover}.stock-badge{position:absolute;right:12px;bottom:12px;background:rgba(255,255,255,.95);color:var(--green);padding:8px 11px;border-radius:13px;font-size:11px;font-weight:900;box-shadow:0 8px 22px rgba(0,0,0,.15)}
+    .trust{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.trust div{border:1px solid var(--line);background:#fff;border-radius:14px;padding:10px 6px;text-align:center;font-size:11px;font-weight:900;color:var(--green);box-shadow:0 5px 14px rgba(15,74,45,.04)}
+    .section{padding:36px 0}.soft{background:var(--cream)}.section-title{margin-bottom:18px}.section-title h2{font-size:27px;line-height:1.3;color:var(--green);margin:0 0 5px}.section-title p{font-size:14px;color:var(--muted);margin:0}
+    .fruit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.fruit{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 7px;text-align:center}.fruit .ico{font-size:28px;line-height:1.1}.fruit b{display:block;color:var(--green);font-size:13px;margin-top:5px}.mix-note{margin-top:12px;background:var(--green3);border:1px solid #d4e7da;border-radius:15px;padding:12px;font-size:12px;color:#355542}
+    .opportunity{display:grid;gap:12px}.split-card,.why-card,.calc-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:17px;box-shadow:var(--shadow)}.split-card h3,.why-card h3,.calc-card h3{margin:0 0 8px;color:var(--green);font-size:21px}.split-examples{display:grid;grid-template-columns:1fr 1fr;gap:8px}.split-examples div{background:var(--cream);border-radius:14px;padding:13px;text-align:center}.split-examples strong{font-size:25px;color:var(--green);display:block}.split-examples span{font-size:12px;color:var(--muted);font-weight:800}
+    .why-list{display:grid;gap:8px}.why-list div{display:flex;align-items:flex-start;gap:8px;font-size:13px}.check{width:22px;height:22px;border-radius:50%;background:var(--green3);color:var(--green);display:grid;place-items:center;font-weight:1000;flex:0 0 auto}
+    .calc-row{display:grid;grid-template-columns:1fr .8fr;gap:8px;align-items:end}.calc-card label{font-size:12px;font-weight:900;color:#3e4d44}.calc-card input{width:100%;height:48px;border:1.5px solid #ccd6cf;border-radius:12px;padding:10px;font-size:16px}.calc-result{background:var(--green);color:#fff;border-radius:14px;padding:12px;text-align:center}.calc-result small{display:block;opacity:.78;font-size:10px}.calc-result strong{font-size:22px}.disclaimer{font-size:10px;color:var(--muted);margin:8px 0 0}
+    .promo{background:linear-gradient(135deg,#0c3e26,#17683e);color:#fff;border-radius:24px;padding:18px;box-shadow:0 18px 38px rgba(15,74,45,.22);position:relative;overflow:hidden}.promo:before{content:"";position:absolute;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06);left:-60px;top:-70px}.promo-top{position:relative;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.promo h3{font-size:23px;margin:0 0 4px}.promo p{margin:0;font-size:12px;opacity:.88}.free-badge{background:#fff;color:var(--green);border-radius:13px;padding:8px 10px;font-size:11px;font-weight:1000;white-space:nowrap}.timer{position:relative;display:flex;direction:ltr;justify-content:center;gap:7px;margin:16px 0 8px;perspective:700px}.timer-unit{text-align:center}.timer-cube{min-width:66px;padding:10px 8px;border-radius:14px;background:linear-gradient(180deg,#ffe9a7,#dba840);color:#342502;font-size:28px;font-weight:1000;line-height:1;box-shadow:inset 0 2px 0 rgba(255,255,255,.75),0 8px 0 #9c6f1e,0 14px 20px rgba(0,0,0,.25);transform:rotateX(4deg)}.timer-unit small{display:block;margin-top:12px;font-size:10px;opacity:.8}.promo-after{text-align:center;font-size:11px;opacity:.8}
+    .offers{display:grid;gap:11px;margin-top:16px}.offer-card{position:relative;background:#fff;border:2px solid var(--line);border-radius:20px;padding:17px;transition:.18s ease}.offer-card.selected{border-color:var(--green);box-shadow:0 0 0 4px rgba(15,74,45,.08)}.offer-card.pro{border-color:#e3c36d;background:linear-gradient(180deg,#fff,#fffaf0)}.offer-badge{position:absolute;left:12px;top:12px;background:var(--green);color:#fff;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:1000}.offer-card h3{font-size:26px;color:var(--green);margin:0}.offer-label{font-size:12px;color:var(--muted);font-weight:900}.price-row{display:flex;align-items:end;justify-content:space-between;gap:9px;border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.price-row strong{font-size:25px}.price-row small{font-size:11px;color:var(--muted);font-weight:900}.shipping-line{margin-top:9px;border-radius:11px;background:var(--green3);padding:8px 9px;color:var(--green);font-size:11px;font-weight:900;display:none}.offer-card.selected .shipping-line{display:block}.offer-btn{width:100%;min-height:47px;border:0;border-radius:13px;background:var(--green);color:#fff;font-weight:1000;margin-top:11px}
+    .formbox{background:#fff;border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:var(--shadow)}.formbox h2{font-size:25px;color:var(--green);margin:0 0 4px}.formbox>p{font-size:13px;color:var(--muted);margin:0 0 15px}.order-summary{background:var(--cream);border:1px solid #e6dece;border-radius:16px;padding:12px;margin-bottom:14px}.sum-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:4px 0}.sum-row.total{border-top:1px dashed #d3c8b8;margin-top:4px;padding-top:9px;font-size:15px}.sum-row.total b{color:var(--green)}.free-text{color:var(--green);font-weight:1000}
+    .form-grid{display:grid;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:14px;font-weight:1000;color:#27372d}.field input,.field select,.field textarea{width:100%;min-height:52px;border:1.5px solid #ccd6cf;border-radius:13px;padding:12px 13px;background:#fff;font-size:16px;color:var(--ink);outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(15,74,45,.08)}.field textarea{min-height:85px;resize:vertical}.hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+    .consent{display:flex;gap:9px;align-items:flex-start;margin:14px 0;font-size:12px;font-weight:800;color:#3b4940}.consent input{width:19px;height:19px;flex:0 0 auto;accent-color:var(--green);margin-top:2px}.primary{width:100%;min-height:54px;border:0;border-radius:14px;background:var(--green);color:#fff;font-size:16px;font-weight:1000}.primary:disabled{opacity:.55}.review{display:none;margin-top:14px;background:var(--cream);border:1px solid #e6dece;border-radius:16px;padding:14px}.review.show{display:block}.review h3{margin:0 0 9px;color:var(--green)}.review-line{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:6px 0;border-bottom:1px dashed #ddd3c5}.review-line:last-child{border-bottom:0}.review-actions{display:grid;grid-template-columns:1fr .6fr;gap:8px;margin-top:12px}.secondary{min-height:50px;border:1px solid var(--green);background:#fff;color:var(--green);border-radius:13px;font-weight:1000}.status{display:none;margin-top:12px;padding:12px;border-radius:13px;font-size:13px}.status.show{display:block}.status.error{background:#fff0f0;color:#9b2626}.status.success{background:#edf8f0;color:#17673b}
+    .storage{display:grid;gap:10px}.storage div{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}.storage b{display:block;color:var(--green);font-size:15px}.storage span{font-size:12px;color:var(--muted)}details{border-bottom:1px solid var(--line);padding:14px 0}summary{color:var(--green);font-weight:1000;cursor:pointer}details p{font-size:13px;color:var(--muted);margin:8px 0 0}
+    .wa{background:var(--green);color:#fff;border-radius:22px;padding:19px}.wa h2{font-size:23px;margin:0 0 5px}.wa p{font-size:12px;opacity:.86;margin:0 0 13px}.wa a{display:flex;min-height:49px;align-items:center;justify-content:center;background:#fff;color:var(--green);border-radius:13px;text-decoration:none;font-weight:1000}.sticky{position:fixed;right:0;left:0;bottom:0;z-index:60;background:#fff;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 22px rgba(0,0,0,.08)}.sticky a{display:flex;min-height:50px;align-items:center;justify-content:center;border-radius:13px;background:var(--green);color:#fff;text-decoration:none;font-weight:1000}footer{text-align:center;color:var(--muted);font-size:11px;padding:25px 0 30px}
+    @media(min-width:760px){
+      body{padding-bottom:0}.sticky{display:none}.hero{padding:18px 0 45px}.hero-grid{grid-template-columns:.9fr 1.1fr;align-items:center;gap:28px}.hero-copy{order:1}.hero-media{order:2}.hero-media img{aspect-ratio:4/3}.trust{margin-top:0}
+      .fruit-grid{grid-template-columns:repeat(6,1fr)}.opportunity{grid-template-columns:1fr 1fr 1fr}.offers{grid-template-columns:repeat(3,1fr)}.form-grid{grid-template-columns:1fr 1fr}.field.full{grid-column:1/-1}.storage{grid-template-columns:repeat(3,1fr)}
+    }
   </style>
 </head>
 <body>
-  <div class="topbar">الجملة فقط · الطلب ابتداءً من 2.5 كغ · التوصيل متوفر إلى مختلف المدن</div>
-  <header class="wrap brandrow"><a class="brand" href="#top" aria-label="AzarBio"><span class="mark">A</span><span><b>AzarBio</b><small>Fruits lyophilisés · Wholesale</small></span></a></header>
+  <div class="ticker" aria-label="معلومات الجملة والتوصيل">
+    <div class="ticker-track">
+      <div class="ticker-item"><span>📦 <b>الجملة فقط</b></span><span>الطلب ابتداءً من <b>2.5 كيلو</b></span><span>🚚 التوصيل إلى <b>جميع المدن التي تغطيها شركة التوصيل</b></span></div>
+      <div class="ticker-item" aria-hidden="true"><span>📦 <b>الجملة فقط</b></span><span>الطلب ابتداءً من <b>2.5 كيلو</b></span><span>🚚 التوصيل إلى <b>جميع المدن التي تغطيها شركة التوصيل</b></span></div>
+    </div>
+  </div>
+
+  <header class="wrap brandrow">
+    <a class="brand" href="#top" aria-label="AzarBio"><span class="mark">A</span><span><b>AzarBio</b><small>Fruits lyophilisés · Grossiste</small></span></a>
+    <span class="wholesale-pill">عرض خاص بالتجار</span>
+  </header>
 
   <main id="top">
     <section class="hero wrap">
-      <div class="hero-media">
-        <img src="${images.hero}" alt="فواكه مجففة بالتبريد مع مخزون للبيع بالجملة" fetchpriority="high" decoding="async">
-        <div class="hero-shade"></div>
-        <div class="hero-copy"><span class="hero-kicker">للمحلات وإعادة البيع</span><h1>فواكه مجففة بالتبريد <em>بالجملة</em></h1><p>ابدأ من 2.5 كغ واختر العرض المناسب لنشاطك.</p></div>
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <span class="kicker">🌿 منتج مختلف لمحلك</span>
+          <h1>فواكه مجففة بالتبريد <span class="gold">بالجملة</span></h1>
+          <p class="lead">مزيج مقرمش وجذاب يضم 6 فواكه، سهل التقسيم وإعادة البيع. الحد الأدنى للطلب 2.5 كغ.</p>
+          <div class="hero-cta"><a class="cta-main" href="#offers">شوف عروض الجملة</a><a class="cta-ghost" href="#business">كيف نبيعها؟</a></div>
+        </div>
+        <div class="hero-media">
+          <img src="/public/azarbio-wholesale-hero.webp" width="800" height="800" alt="ساشي كبير من الفواكه المجففة بالتبريد مع صحن ومخزون كراتين" fetchpriority="high" decoding="async">
+          <span class="stock-badge">مخزون جملة · ساشي كبير</span>
+        </div>
       </div>
-      <div class="quick"><div>📦 كمية جملة واضحة</div><div>❄️ لا تحتاج ثلاجة عند الحفظ الجاف والمحكم</div><div>🚚 توصيل لمختلف المدن</div></div>
+      <div class="trust"><div>🥭 6 فواكه في المزيج</div><div>📦 ابتداءً من 2.5 كغ</div><div>🔒 حفظ محكم وجاف</div></div>
     </section>
 
-    <section class="section soft" id="offers"><div class="wrap">
-      <div class="title"><h2>اختر عرض الجملة المناسب</h2><p>ثلاثة عروض فقط، والأسعار الإجمالية واضحة قبل إرسال الطلب.</p></div>
-      <div class="offers">
-        <article class="offer-card selected" data-offer="2.5KG" tabindex="0"><h3>2.5 كغ</h3><div class="label">عرض البداية</div><div class="money"><strong>447.5 درهم</strong><small>179 درهم/كغ</small></div><p>مناسب للتجربة وبداية إعادة البيع.</p><button class="offer-btn" type="button">اختيار 2.5 كغ</button></article>
-        <article class="offer-card recommended" data-offer="5KG" tabindex="0"><span class="badge">عرض التاجر</span><h3>5 كغ</h3><div class="label">للبيع المنتظم</div><div class="money"><strong>799 درهم</strong><small>حوالي 160 درهم/كغ</small></div><p>كمية أكبر بسعر/كغ أقل من عرض البداية.</p><button class="offer-btn" type="button">اختيار 5 كغ</button></article>
-        <article class="offer-card" data-offer="10KG" tabindex="0"><span class="badge">أفضل سعر/كغ</span><h3>10 كغ</h3><div class="label">للطلبات الأكبر</div><div class="money"><strong>1450 درهم</strong><small>145 درهم/كغ</small></div><p>أقل سعر للكيلو بين عروض الصفحة.</p><button class="offer-btn" type="button">اختيار 10 كغ</button></article>
-      </div>
-    </div></section>
-
-    <section class="section" id="order"><div class="wrap"><div class="formbox">
-      <h2>أرسل طلبك</h2><p>راجع معلوماتك قبل التأكيد. سنتواصل معك هاتفياً لتأكيد الطلب قبل الشحن.</p>
-      <div class="selected-offer"><span><small>العرض المختار</small><strong id="selectedOfferLabel">2.5 كغ — 447.5 درهم</strong></span><span>✓</span></div>
-      <form id="leadForm" novalidate>
-        <input type="hidden" name="offer_package" id="offerPackage" value="2.5KG"><input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <div class="form-grid">
-          <div class="field"><label for="name">الاسم الكامل *</label><input id="name" name="name" type="text" autocomplete="name" minlength="2" maxlength="100" required placeholder="مثال: محمد العلوي"></div>
-          <div class="field"><label for="phone">رقم الهاتف *</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="06XXXXXXXX أو 07XXXXXXXX"></div>
-          <div class="field"><label for="city">المدينة *</label><input id="city" name="city" type="text" autocomplete="address-level2" maxlength="80" required placeholder="مثال: الدار البيضاء"></div>
-          <div class="field"><label for="businessType">نوع النشاط *</label><select id="businessType" name="business_type" required><option value="">اختر النشاط</option><option>محل مكسرات وزريعة</option><option>بقالة / سوبرماركت</option><option>مقهى / حلويات / مخبزة</option><option>إعادة البيع أونلاين</option><option>مشروع جديد</option><option>نشاط آخر</option></select></div>
-          <div class="field full"><label for="address">العنوان بالتفصيل *</label><input id="address" name="address" type="text" autocomplete="street-address" minlength="5" maxlength="220" required placeholder="الحي، الشارع، رقم المحل أو أقرب نقطة معروفة"></div>
-          <div class="field full"><label for="offerSelect">العرض *</label><select id="offerSelect" required><option value="2.5KG">2.5 كغ — 447.5 درهم</option><option value="5KG">5 كغ — 799 درهم</option><option value="10KG">10 كغ — 1450 درهم</option></select></div>
-          <div class="field full"><label for="notes">ملاحظة (اختياري)</label><textarea id="notes" name="notes" maxlength="600" placeholder="أي معلومة إضافية تساعدنا في تأكيد الطلب"></textarea></div>
+    <section class="section soft">
+      <div class="wrap">
+        <div class="section-title"><h2>شنو كاين داخل ساشي 2.5 كغ؟</h2><p>التاجر خاصو يعرف المنتوج قبل ما يطلب. المزيج يضم ستة أنواع واضحة.</p></div>
+        <div class="fruit-grid">
+          <div class="fruit"><div class="ico">🍓</div><b>فريز</b></div>
+          <div class="fruit"><div class="ico">🍌</div><b>بنان</b></div>
+          <div class="fruit"><div class="ico">🥭</div><b>مانجا</b></div>
+          <div class="fruit"><div class="ico">🥝</div><b>كيوي</b></div>
+          <div class="fruit"><div class="ico">🍎</div><b>تفاح</b></div>
+          <div class="fruit"><div class="ico">◉</div><b>كرموس</b></div>
         </div>
-        <label class="consent"><input type="checkbox" name="consent_order" value="yes" required><span>أؤكد أن رقم الهاتف هذا يخصني وأنني أرغب فعلاً في هذا الطلب وأوافق على التواصل معي لتأكيده.</span></label>
-        <button type="button" class="primary" id="reviewBtn">راجع طلبي قبل الإرسال</button>
-        <div class="review" id="reviewPanel" aria-live="polite"><h3>تأكد من الطلب قبل الإرسال</h3><div class="review-lines" id="reviewLines"></div><div class="review-actions"><button type="button" class="primary" id="confirmBtn">نعم، أكد طلبي</button><button type="button" class="secondary" id="editBtn">تعديل</button></div></div>
-        <div class="status" id="formStatus" role="status"></div>
-      </form>
-    </div></div></section>
-
-    <section class="section soft"><div class="wrap content-grid">
-      <div><div class="detail"><img src="${images.detail}" alt="مزيج فواكه مجففة بالتبريد" loading="lazy" decoding="async"></div></div>
-      <div><div class="title"><h2>منتج موجه للبيع المهني</h2><p>الصفحة مخصصة للجملة، لذلك نعرض الكميات والأسعار مباشرة بدون عروض استهلاك فردي.</p></div>
-        <div class="proof-grid"><div class="proof"><b>سهل التقسيم</b><span>يمكن تقسيم الكمية إلى عبوات أصغر حسب طريقة البيع عندك.</span></div><div class="proof"><b>تخزين بسيط</b><span>يحفظ محكماً في مكان جاف وبعيداً عن الرطوبة والحرارة المباشرة.</span></div><div class="proof"><b>مناسب لعدة أنشطة</b><span>محلات المكسرات، البيع أونلاين، المقاهي والحلويات وغيرها.</span></div></div>
-        <div class="audience" style="margin-top:14px"><span>محلات المكسرات</span><span>بقالة راقية</span><span>حلويات ومقاهي</span><span>إعادة البيع أونلاين</span><span>مشاريع جديدة</span></div>
+        <div class="mix-note">القوام خفيف ومقرمش، والألوان طبيعية حسب نوع الفاكهة. للحفاظ على القرمشة: سد العبوة جيداً وخليها بعيداً عن الرطوبة والحرارة المباشرة.</div>
       </div>
+    </section>
+
+    <section class="section" id="business">
+      <div class="wrap">
+        <div class="section-title"><h2>كيف تقدر تحول 2.5 كغ لوحدات للبيع؟</h2><p>مثال بسيط يساعدك تفهم الحجم الحقيقي للكمية قبل الطلب.</p></div>
+        <div class="opportunity">
+          <div class="split-card">
+            <h3>مثال التقسيم</h3>
+            <div class="split-examples"><div><strong>50</strong><span>كيس × 50g</span></div><div><strong>≈62</strong><span>كيس × 40g</span></div></div>
+            <p class="disclaimer">الأرقام حسابية تقريبية قبل فاقد الوزن أو اختلاف طريقة التعبئة.</p>
+          </div>
+          <div class="why-card">
+            <h3>علاش يقدر يكون إضافة جيدة؟</h3>
+            <div class="why-list"><div><span class="check">✓</span><span>منتج مختلف بصرياً عن السناكات المعتادة.</span></div><div><span class="check">✓</span><span>سهل تقسيمه إلى أحجام مناسبة لطريقة البيع عندك.</span></div><div><span class="check">✓</span><span>القوام المقرمش يعطي تجربة أكل ممتعة ويساعد على عرض المنتج بطريقة جذابة.</span></div><div><span class="check">✓</span><span>يمكن حفظه مدة طويلة نسبياً عندما يبقى محكماً وجافاً؛ المدة الدقيقة حسب تعبئتك وشروط المورد.</span></div></div>
+          </div>
+          <div class="calc-card">
+            <h3>احسب المداخيل النظرية</h3>
+            <div class="calc-row"><div><label for="resalePrice">ثمن بيع 50g عندك</label><input id="resalePrice" type="number" inputmode="decimal" min="1" max="200" value="20"></div><div class="calc-result"><small>50 كيس × السعر</small><strong id="calcRevenue">1000 DH</strong></div></div>
+            <p class="disclaimer">هذه مداخيل نظرية قبل تكلفة العبوات، الإشهار، التوصيل والمصاريف الأخرى؛ ليست ربحاً مضموناً.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section soft" id="offers">
+      <div class="wrap">
+        <div class="promo" id="promoBox">
+          <div class="promo-top"><div><h3 id="promoTitle">عرض التوصيل المجاني</h3><p id="promoSubtitle">متاح لمدة ساعتين من أول زيارة على هذا المتصفح.</p></div><span class="free-badge" id="promoBadge">🚚 التوصيل 0 درهم</span></div>
+          <div class="timer" id="timer"><div class="timer-unit"><div class="timer-cube" id="hh">02</div><small>ساعة</small></div><div class="timer-unit"><div class="timer-cube" id="mm">00</div><small>دقيقة</small></div><div class="timer-unit"><div class="timer-cube" id="ss">00</div><small>ثانية</small></div></div>
+          <div class="promo-after" id="promoAfter">بعد انتهاء العرض: التوصيل 35 درهم.</div>
+        </div>
+
+        <div class="section-title" style="margin-top:24px"><h2>اختر عرض الجملة</h2><p>اضغط على العرض باش تشوف التوصيل والمجموع النهائي.</p></div>
+        <div class="offers">
+          <article class="offer-card selected" data-offer="2.5KG" tabindex="0">
+            <h3>2.5 كغ</h3><div class="offer-label">عرض البداية</div>
+            <div class="price-row"><strong>447.5 DH</strong><small>179 DH/كغ</small></div>
+            <div class="shipping-line">🚚 <span class="shipping-copy">التوصيل مجاني حتى محلك خلال العرض</span></div>
+            <button class="offer-btn" type="button">اختيار 2.5 كغ</button>
+          </article>
+          <article class="offer-card pro" data-offer="5KG" tabindex="0">
+            <span class="offer-badge">عرض التاجر</span><h3>5 كغ</h3><div class="offer-label">كمية أكبر</div>
+            <div class="price-row"><strong>799 DH</strong><small>≈159.8 DH/كغ</small></div>
+            <div class="shipping-line">🚚 <span class="shipping-copy">التوصيل مجاني حتى محلك خلال العرض</span></div>
+            <button class="offer-btn" type="button">اختيار 5 كغ</button>
+          </article>
+          <article class="offer-card" data-offer="10KG" tabindex="0">
+            <span class="offer-badge">أفضل سعر/كغ</span><h3>10 كغ</h3><div class="offer-label">للطلبات الأكبر</div>
+            <div class="price-row"><strong>1450 DH</strong><small>145 DH/كغ</small></div>
+            <div class="shipping-line">🚚 <span class="shipping-copy">التوصيل مجاني حتى محلك خلال العرض</span></div>
+            <button class="offer-btn" type="button">اختيار 10 كغ</button>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="order">
+      <div class="wrap">
+        <div class="formbox">
+          <h2>أرسل طلبك</h2><p>سنتواصل معك لتأكيد الطلب والعنوان قبل الشحن. راجع المعلومات قبل الإرسال النهائي.</p>
+          <div class="order-summary">
+            <div class="sum-row"><span>العرض</span><b id="sumOffer">2.5 كغ</b></div>
+            <div class="sum-row"><span>ثمن المنتج</span><b id="sumProduct">447.5 DH</b></div>
+            <div class="sum-row"><span>التوصيل</span><b id="sumShipping" class="free-text">مجاني</b></div>
+            <div class="sum-row total"><span>المجموع</span><b id="sumTotal">447.5 DH</b></div>
+          </div>
+          <form id="leadForm" novalidate>
+            <input type="hidden" name="offer_package" id="offerPackage" value="2.5KG">
+            <input type="hidden" name="client_promo_deadline" id="clientPromoDeadline" value="${promo.deadline}">
+            <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+            <div class="form-grid">
+              <div class="field"><label for="name">الاسم الكامل *</label><input id="name" name="name" type="text" autocomplete="name" minlength="2" maxlength="100" required placeholder="مثال: محمد العلوي"></div>
+              <div class="field"><label for="phone">رقم الهاتف *</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="06XXXXXXXX أو 07XXXXXXXX"></div>
+              <div class="field"><label for="city">المدينة *</label><input id="city" name="city" type="text" autocomplete="address-level2" maxlength="80" required placeholder="مثال: الدار البيضاء"></div>
+              <div class="field"><label for="businessType">نوع النشاط *</label><select id="businessType" name="business_type" required><option value="">اختر النشاط</option><option>محل مكسرات وزريعة</option><option>بقالة / سوبرماركت</option><option>مقهى / حلويات / مخبزة</option><option>إعادة البيع أونلاين</option><option>مشروع جديد</option><option>نشاط آخر</option></select></div>
+              <div class="field full"><label for="address">العنوان بالتفصيل *</label><input id="address" name="address" type="text" autocomplete="street-address" minlength="5" maxlength="220" required placeholder="الحي، الشارع، رقم المحل أو أقرب نقطة معروفة"></div>
+              <div class="field full"><label for="offerSelect">العرض *</label><select id="offerSelect" required><option value="2.5KG">2.5 كغ — 447.5 DH</option><option value="5KG">5 كغ — 799 DH</option><option value="10KG">10 كغ — 1450 DH</option></select></div>
+              <div class="field full"><label for="notes">ملاحظة (اختياري)</label><textarea id="notes" name="notes" maxlength="600" placeholder="مثلاً: اسم المحل أو أفضل وقت للاتصال"></textarea></div>
+            </div>
+            <label class="consent"><input type="checkbox" name="consent_order" value="yes" required><span>أؤكد أن رقم الهاتف هذا يخصني وأنني أرغب فعلاً في الطلب وأوافق على التواصل معي لتأكيده.</span></label>
+            <button type="button" class="primary" id="reviewBtn">راجع طلبي قبل الإرسال</button>
+            <div class="review" id="reviewPanel"><h3>تأكد من الطلب</h3><div id="reviewLines"></div><div class="review-actions"><button type="button" class="primary" id="confirmBtn">نعم، أكد طلبي</button><button type="button" class="secondary" id="editBtn">تعديل</button></div></div>
+            <div class="status" id="formStatus" role="status"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="section soft">
+      <div class="wrap">
+        <div class="section-title"><h2>باش يبقى مقرمش ومزيان</h2><p>الرطوبة هي العدو الأول للفواكه المجففة بالتبريد.</p></div>
+        <div class="storage"><div><b>🔒 سد العبوة جيداً</b><span>بعد كل استعمال، أغلق الساشي أو العبوات بإحكام.</span></div><div><b>💧 بعيداً عن الرطوبة</b><span>خزن في مكان جاف ولا تترك المنتج مكشوفاً.</span></div><div><b>☀️ بعيداً عن الحرارة والشمس</b><span>مكان بارد نسبياً وجاف يساعد على الحفاظ على القوام.</span></div></div>
+      </div>
+    </section>
+
+    <section class="section"><div class="wrap">
+      <div class="section-title"><h2>أسئلة التاجر قبل أول طلب</h2></div>
+      <details><summary>شنو كاين فالساشي 2.5 كغ؟</summary><p>المزيج يضم الفريز، البنان، المانجا، الكيوي، التفاح والكرموس.</p></details>
+      <details><summary>كيفاش نقدر نقسم 2.5 كغ؟</summary><p>حسابياً: 50 كيس من 50g، أو حوالي 62 كيس من 40g. خذ بعين الاعتبار طريقة التعبئة وأي فاقد بسيط.</p></details>
+      <details><summary>واش كيحتاج الثلاجة؟</summary><p>لا. خليه محكم الإغلاق، جاف، وبعيداً عن الرطوبة والحرارة المباشرة.</p></details>
+      <details><summary>واش التوصيل مجاني؟</summary><p id="faqShipping">نعم خلال عرض الساعتين من أول زيارة. بعد انتهاء العرض يصبح التوصيل 35 درهم.</p></details>
+      <details><summary>واش الربح مضمون؟</summary><p>لا توجد أرباح مضمونة. النتيجة تعتمد على سعر البيع، تكلفة العبوة، الإشهار، موقع المحل والمصاريف الأخرى. لهذا وضعنا حاسبة مداخيل نظرية بدل وعود ربح غير واقعية.</p></details>
     </div></section>
 
-    <section class="section"><div class="wrap"><div class="title"><h2>أسئلة سريعة قبل الطلب</h2></div>
-      <details><summary>ما هو الحد الأدنى للطلب؟</summary><p>الحد الأدنى في هذه الصفحة هو 2.5 كغ.</p></details>
-      <details><summary>هل يحتاج المنتج إلى الثلاجة؟</summary><p>لا يحتاج إلى الثلاجة عند حفظه محكماً في مكان جاف، بعيداً عن الرطوبة والحرارة وأشعة الشمس المباشرة.</p></details>
-      <details><summary>هل يصلح لإعادة البيع؟</summary><p>نعم، ويمكن تقسيمه إلى عبوات أصغر حسب نشاطك وطريقة البيع عندك.</p></details>
-      <details><summary>هل التوصيل متوفر؟</summary><p>نعم، التوصيل متوفر إلى مختلف المدن، ويتم تأكيد تفاصيل الشحن أثناء مكالمة التأكيد.</p></details>
-    </div></section>
-
-    <section class="section" id="whatsapp"><div class="wrap"><div class="wa"><h2>عندك استفسار قبل الطلب؟</h2><p>واتساب للمساعدة والاستفسارات فقط. إذا كنت جاهزاً للطلب، استعمل الفورم أعلاه حتى نسجل معلوماتك بشكل صحيح.</p><a href="https://wa.me/212708101099?text=%D8%B3%D9%84%D8%A7%D9%85%D8%8C%20%D8%B9%D9%86%D8%AF%D9%8A%20%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D8%B9%D8%B1%D9%88%D8%B6%20AzarBio%20%D9%84%D9%84%D8%AC%D9%85%D9%84%D8%A9" target="_blank" rel="noopener">تواصل عبر واتساب</a></div></div></section>
+    <section class="section" id="whatsapp"><div class="wrap"><div class="wa"><h2>عندك سؤال قبل الطلب؟</h2><p>واتساب للاستفسارات فقط. إذا كنت جاهزاً للطلب استعمل الفورم باش تبقى معلوماتك مسجلة بشكل صحيح.</p><a href="https://wa.me/212708101099?text=%D8%B3%D9%84%D8%A7%D9%85%D8%8C%20%D8%B9%D9%86%D8%AF%D9%8A%20%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D8%B9%D8%B1%D9%88%D8%B6%20AzarBio%20%D9%84%D9%84%D8%AC%D9%85%D9%84%D8%A9" target="_blank" rel="noopener">تواصل عبر واتساب</a></div></div></section>
   </main>
 
-  <footer class="wrap">AzarBio · بيع الفواكه المجففة بالتبريد بالجملة في المغرب</footer><div class="sticky"><a href="#offers">شوف عروض الجملة</a></div>
+  <footer class="wrap">AzarBio · بيع الفواكه المجففة بالتبريد بالجملة في المغرب</footer>
+  <div class="sticky"><a href="#offers">شوف عروض الجملة</a></div>
 
   <script>
     (function(){
-      var offers = ${JSON.stringify(OFFERS)};
-      var loadedAt=Date.now(),form=document.getElementById('leadForm'),cards=Array.prototype.slice.call(document.querySelectorAll('.offer-card')),offerInput=document.getElementById('offerPackage'),offerSelect=document.getElementById('offerSelect'),selectedLabel=document.getElementById('selectedOfferLabel'),reviewBtn=document.getElementById('reviewBtn'),reviewPanel=document.getElementById('reviewPanel'),reviewLines=document.getElementById('reviewLines'),confirmBtn=document.getElementById('confirmBtn'),editBtn=document.getElementById('editBtn'),status=document.getElementById('formStatus'),sending=false;
-      function setOffer(key,scroll){if(!offers[key])return;offerInput.value=key;offerSelect.value=key;selectedLabel.textContent=offers[key].qty+' — '+offers[key].total;cards.forEach(function(card){card.classList.toggle('selected',card.getAttribute('data-offer')===key)});reviewPanel.classList.remove('show');if(scroll)document.getElementById('order').scrollIntoView({behavior:'smooth',block:'start'})}
-      cards.forEach(function(card){function choose(){setOffer(card.getAttribute('data-offer'),true)}card.addEventListener('click',choose);card.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();choose()}})});offerSelect.addEventListener('change',function(){setOffer(offerSelect.value,false)});
-      function validPhone(value){var digits=String(value||'').replace(/\D/g,'');if(digits.indexOf('212')===0)digits='0'+digits.slice(3);return /^0[5-7]\d{8}$/.test(digits)}
-      function showStatus(message,type){status.textContent=message;status.className='status show '+type}function clearStatus(){status.className='status';status.textContent=''}function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
-      reviewBtn.addEventListener('click',function(){clearStatus();if(!form.reportValidity())return;if(!validPhone(form.phone.value)){showStatus('المرجو إدخال رقم هاتف مغربي صحيح يبدأ بـ 06 أو 07.','error');form.phone.focus();return}var key=offerInput.value,o=offers[key];reviewLines.innerHTML='<div class="review-line"><span>الاسم</span><b>'+escapeHtml(form.name.value)+'</b></div>'+'<div class="review-line"><span>الهاتف</span><b>'+escapeHtml(form.phone.value)+'</b></div>'+'<div class="review-line"><span>المدينة</span><b>'+escapeHtml(form.city.value)+'</b></div>'+'<div class="review-line"><span>العنوان</span><b>'+escapeHtml(form.address.value)+'</b></div>'+'<div class="review-line"><span>العرض</span><b>'+escapeHtml(o.qty+' — '+o.total)+'</b></div>';reviewPanel.classList.add('show');reviewPanel.scrollIntoView({behavior:'smooth',block:'center'});try{if(window.gtag)window.gtag('event','form_review',{offer_package:key})}catch(e){}});
+      var offers=${JSON.stringify(OFFERS)},deadline=${promo.deadline},loadedAt=Date.now(),shipping=0,current='2.5KG',sending=false;
+      var form=document.getElementById('leadForm'),cards=[].slice.call(document.querySelectorAll('.offer-card')),offerInput=document.getElementById('offerPackage'),offerSelect=document.getElementById('offerSelect'),reviewBtn=document.getElementById('reviewBtn'),reviewPanel=document.getElementById('reviewPanel'),reviewLines=document.getElementById('reviewLines'),confirmBtn=document.getElementById('confirmBtn'),editBtn=document.getElementById('editBtn'),status=document.getElementById('formStatus');
+
+      function money(v){return (Math.round(v*10)/10).toString().replace('.0','')+' DH'}
+      function updateSummary(){
+        var o=offers[current],total=o.productTotal+shipping;
+        document.getElementById('sumOffer').textContent=o.qty;
+        document.getElementById('sumProduct').textContent=money(o.productTotal);
+        var s=document.getElementById('sumShipping');
+        s.textContent=shipping===0?'مجاني':money(shipping);s.classList.toggle('free-text',shipping===0);
+        document.getElementById('sumTotal').textContent=money(total);
+        document.querySelectorAll('.shipping-copy').forEach(function(el){el.textContent=shipping===0?'التوصيل مجاني حتى محلك خلال العرض':'التوصيل الآن 35 درهم';});
+      }
+      function setOffer(key,scroll){if(!offers[key])return;current=key;offerInput.value=key;offerSelect.value=key;cards.forEach(function(c){c.classList.toggle('selected',c.dataset.offer===key)});reviewPanel.classList.remove('show');updateSummary();if(scroll)document.getElementById('order').scrollIntoView({behavior:'smooth',block:'start'})}
+      cards.forEach(function(card){function choose(){setOffer(card.dataset.offer,true)}card.addEventListener('click',choose);card.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();choose()}})});offerSelect.addEventListener('change',function(){setOffer(offerSelect.value,false)});
+
+      function updatePromo(){
+        var left=Math.max(0,deadline-Date.now()),active=left>0;shipping=active?0:35;
+        var h=Math.floor(left/3600000),m=Math.floor((left%3600000)/60000),s=Math.floor((left%60000)/1000);
+        document.getElementById('hh').textContent=String(h).padStart(2,'0');document.getElementById('mm').textContent=String(m).padStart(2,'0');document.getElementById('ss').textContent=String(s).padStart(2,'0');
+        document.getElementById('promoTitle').textContent=active?'عرض التوصيل المجاني':'انتهى عرض التوصيل المجاني';
+        document.getElementById('promoSubtitle').textContent=active?'متاح لمدة ساعتين من أول زيارة على هذا المتصفح.':'يمكنك مواصلة الطلب؛ التوصيل الآن 35 درهم.';
+        document.getElementById('promoBadge').textContent=active?'🚚 التوصيل 0 درهم':'🚚 التوصيل 35 درهم';
+        document.getElementById('promoAfter').textContent=active?'بعد انتهاء العرض: التوصيل 35 درهم.':'العرض انتهى على هذا المتصفح.';
+        document.getElementById('faqShipping').textContent=active?'نعم خلال عرض الساعتين من أول زيارة. بعد انتهاء العرض يصبح التوصيل 35 درهم.':'عرض الساعتين انتهى، والتوصيل الآن 35 درهم.';
+        updateSummary();
+      }
+      updatePromo();setInterval(updatePromo,1000);
+
+      var resale=document.getElementById('resalePrice');function calc(){var p=Math.max(0,Number(resale.value)||0);document.getElementById('calcRevenue').textContent=Math.round(p*50)+' DH'}resale.addEventListener('input',calc);calc();
+
+      function validPhone(value){var d=String(value||'').replace(/\\D/g,'');if(d.indexOf('212')===0)d='0'+d.slice(3);return /^0[67]\\d{8}$/.test(d)}
+      function showStatus(message,type){status.textContent=message;status.className='status show '+type}function clearStatus(){status.className='status';status.textContent=''}
+      function esc(v){return String(v||'').replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
+
+      reviewBtn.addEventListener('click',function(){
+        clearStatus();if(!form.reportValidity())return;if(!validPhone(form.phone.value)){showStatus('المرجو إدخال رقم هاتف مغربي صحيح يبدأ بـ 06 أو 07.','error');form.phone.focus();return}
+        var o=offers[current],total=o.productTotal+shipping;
+        reviewLines.innerHTML='<div class="review-line"><span>الاسم</span><b>'+esc(form.name.value)+'</b></div><div class="review-line"><span>الهاتف</span><b>'+esc(form.phone.value)+'</b></div><div class="review-line"><span>العنوان</span><b>'+esc(form.address.value)+'</b></div><div class="review-line"><span>العرض</span><b>'+esc(o.qty)+'</b></div><div class="review-line"><span>التوصيل</span><b>'+(shipping===0?'مجاني':'35 DH')+'</b></div><div class="review-line"><span>المجموع</span><b>'+money(total)+'</b></div>';
+        reviewPanel.classList.add('show');reviewPanel.scrollIntoView({behavior:'smooth',block:'center'});
+        try{if(window.gtag)window.gtag('event','form_review',{offer_package:current,shipping_fee:shipping})}catch(e){}
+      });
       editBtn.addEventListener('click',function(){reviewPanel.classList.remove('show');form.scrollIntoView({behavior:'smooth',block:'start'})});
-      confirmBtn.addEventListener('click',async function(){if(sending)return;clearStatus();if(!form.reportValidity()||!validPhone(form.phone.value))return;sending=true;confirmBtn.disabled=true;confirmBtn.textContent='جاري تسجيل الطلب...';try{var data=Object.fromEntries(new FormData(form).entries()),params=new URLSearchParams(window.location.search);data.source='AzarBio - Landing V2 Wholesale';data.utm_source=params.get('utm_source')||'';data.utm_medium=params.get('utm_medium')||'';data.utm_campaign=params.get('utm_campaign')||'';data.utm_content=params.get('utm_content')||'';data.utm_term=params.get('utm_term')||'';data.landing_page=window.location.href;data.client_elapsed_ms=String(Date.now()-loadedAt);var response=await fetch('/api/lead',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},credentials:'same-origin',cache:'no-store',body:JSON.stringify(data)}),result={};try{result=await response.json()}catch(e){}if(!response.ok||result.ok!==true)throw new Error(result.error||'submit_failed');form.reset();setOffer('2.5KG',false);reviewPanel.classList.remove('show');showStatus('تم تسجيل طلبك بنجاح. سنتواصل معك لتأكيده قبل الشحن.','success');status.scrollIntoView({behavior:'smooth',block:'center'})}catch(err){var map={invalid_name:'المرجو إدخال الاسم بشكل صحيح.',invalid_phone:'المرجو إدخال رقم هاتف صحيح.',invalid_city:'المرجو إدخال المدينة.',invalid_address:'المرجو إدخال العنوان بشكل أوضح.',invalid_business_type:'المرجو اختيار نوع النشاط.',consent_required:'خاصك تأكد أن رقم الهاتف ديالك وأنك باغي الطلب.',invalid_offer:'المرجو اختيار عرض صحيح.',duplicate_recent:'تم تسجيل طلب بنفس الرقم مؤخراً. إذا احتجت تعديلاً تواصل معنا.',duplicate_phone:'تم تسجيل طلبات بنفس الرقم مؤخراً. إذا احتجت تعديلاً تواصل معنا.',too_fast:'المرجو مراجعة المعلومات ثم إعادة المحاولة.',too_many_requests:'عدد المحاولات كبير. انتظر قليلاً ثم حاول من جديد.',upstream_error:'تعذر تسجيل الطلب مؤقتاً. حاول بعد قليل.',upstream_unavailable:'تعذر الاتصال بخدمة تسجيل الطلبات حالياً.'};showStatus(map[err.message]||'تعذر تسجيل الطلب حالياً. حاول مرة أخرى بعد قليل.','error')}finally{sending=false;confirmBtn.disabled=false;confirmBtn.textContent='نعم، أكد طلبي'}});
+
+      confirmBtn.addEventListener('click',async function(){
+        if(sending)return;clearStatus();if(!form.reportValidity()||!validPhone(form.phone.value))return;sending=true;confirmBtn.disabled=true;confirmBtn.textContent='جاري تسجيل الطلب...';
+        try{
+          var data=Object.fromEntries(new FormData(form).entries()),params=new URLSearchParams(location.search);
+          data.source='AzarBio - Landing V2 Wholesale';data.utm_source=params.get('utm_source')||'';data.utm_medium=params.get('utm_medium')||'';data.utm_campaign=params.get('utm_campaign')||'';data.utm_content=params.get('utm_content')||'';data.utm_term=params.get('utm_term')||'';data.landing_page=location.href;data.client_elapsed_ms=String(Date.now()-loadedAt);
+          var response=await fetch('/api/lead',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},credentials:'same-origin',cache:'no-store',body:JSON.stringify(data)}),result={};try{result=await response.json()}catch(e){}
+          if(!response.ok||result.ok!==true)throw new Error(result.error||'submit_failed');
+          form.reset();setOffer('2.5KG',false);reviewPanel.classList.remove('show');showStatus('تم تسجيل طلبك بنجاح. سنتواصل معك لتأكيد الطلب والعنوان قبل الشحن.','success');status.scrollIntoView({behavior:'smooth',block:'center'});
+        }catch(err){
+          var map={invalid_name:'المرجو إدخال الاسم بشكل صحيح.',invalid_phone:'المرجو إدخال رقم هاتف صحيح.',invalid_city:'المرجو إدخال المدينة.',invalid_address:'المرجو إدخال العنوان بشكل أوضح.',invalid_business_type:'المرجو اختيار نوع النشاط.',consent_required:'خاصك تأكد أن رقم الهاتف ديالك وأنك باغي الطلب.',invalid_offer:'المرجو اختيار عرض صحيح.',duplicate_phone:'تم تسجيل طلبات بنفس الرقم مؤخراً. إذا احتجت تعديلاً تواصل معنا.',too_fast:'راجع معلوماتك ثم حاول من جديد.',too_many_requests:'عدد المحاولات كبير. انتظر قليلاً ثم حاول من جديد.',upstream_error:'تعذر تسجيل الطلب مؤقتاً. حاول بعد قليل.',upstream_unavailable:'تعذر الاتصال بخدمة تسجيل الطلبات حالياً.'};showStatus(map[err.message]||'تعذر تسجيل الطلب حالياً. حاول مرة أخرى بعد قليل.','error');
+        }finally{sending=false;confirmBtn.disabled=false;confirmBtn.textContent='نعم، أكد طلبي'}
+      });
+      updateSummary();
     })();
   </script>
 </body>
