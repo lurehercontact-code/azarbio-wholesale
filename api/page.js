@@ -123,7 +123,7 @@ export default function handler(req, res) {
           <div class="hero-cta"><a class="cta-main" href="#offers">شوف عروض الجملة</a><a class="cta-ghost" href="#business">كيف نبيعها؟</a></div>
         </div>
         <div class="hero-media">
-          <img src="/public/azarbio-wholesale-hero.webp" width="800" height="800" alt="ساشي كبير من الفواكه المجففة بالتبريد مع صحن ومخزون كراتين" fetchpriority="high" decoding="async">
+          <img src="/api/hero-image" width="800" height="800" alt="ساشي كبير من الفواكه المجففة بالتبريد مع صحن ومخزون كراتين" fetchpriority="high" decoding="async">
           <span class="stock-badge">مخزون جملة · ساشي كبير</span>
         </div>
       </div>
