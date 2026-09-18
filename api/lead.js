@@ -110,7 +110,6 @@ export default async function handler(req, res) {
   if (!phone) return sendJson(res, 400, { ok: false, error: 'invalid_phone' });
   if (city.length < 2) return sendJson(res, 400, { ok: false, error: 'invalid_city' });
   if (address.length < 5) return sendJson(res, 400, { ok: false, error: 'invalid_address' });
-  if (businessType.length < 2) return sendJson(res, 400, { ok: false, error: 'invalid_business_type' });
   if (!ALLOWED_OFFERS[offerPackage]) return sendJson(res, 400, { ok: false, error: 'invalid_offer' });
   if (consentOrder !== 'yes') return sendJson(res, 400, { ok: false, error: 'consent_required' });
   if (Number.isFinite(elapsedMs) && elapsedMs > 0 && elapsedMs < 2500) {
