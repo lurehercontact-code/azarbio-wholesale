@@ -1,13 +1,15 @@
 const ALLOWED_OFFERS = {
-  '2.5KG': { unit: 179, total: 447.5 },
-  '5KG': { unit: 159.8, total: 799 },
-  '10KG': { unit: 145, total: 1450 },
+  '2.5KG': { unit: 179, productTotal: 447.5 },
+  '5KG': { unit: 159.8, productTotal: 799 },
+  '10KG': { unit: 145, productTotal: 1450 },
 };
 
 const RATE_WINDOW_MS = 10 * 60_000;
 const RATE_MAX = 4;
 const PHONE_WINDOW_MS = 30 * 60_000;
 const PHONE_MAX = 2;
+const PROMO_MS = 2 * 60 * 60 * 1000;
+const PROMO_COOKIE = 'az_promo_start';
 
 const rateStore = globalThis.__azarbioRateStoreV2 || new Map();
 const phoneStore = globalThis.__azarbioPhoneStoreV2 || new Map();
@@ -15,10 +17,7 @@ globalThis.__azarbioRateStoreV2 = rateStore;
 globalThis.__azarbioPhoneStoreV2 = phoneStore;
 
 function clean(value, max = 200) {
-  return String(value ?? '')
-    .replace(/[\u0000-\u001F\u007F]/g, ' ')
-    .trim()
-    .slice(0, max);
+  return String(value ?? '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, max);
 }
 
 function sendJson(res, status, body) {
@@ -57,6 +56,21 @@ function touchWindow(store, key, now, windowMs, limit) {
   return true;
 }
 
+function readCookie(req, name) {
+  const raw = String(req.headers.cookie || '');
+  for (const part of raw.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(rest.join('='));
+  }
+  return '';
+}
+
+function shippingForRequest(req, now) {
+  const startedAt = Number(readCookie(req, PROMO_COOKIE));
+  if (!Number.isFinite(startedAt) || startedAt <= 0 || startedAt > now + 60_000) return 35;
+  return now - startedAt <= PROMO_MS ? 0 : 35;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -75,12 +89,9 @@ export default async function handler(req, res) {
     return sendJson(res, 200, { ok: true, ignored: true });
   }
 
-  const ip = clean(
-    String(req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown',
-    80
-  );
-
+  const ip = clean(String(req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown', 80);
   const now = Date.now();
+
   if (!touchWindow(rateStore, ip, now, RATE_WINDOW_MS, RATE_MAX)) {
     return sendJson(res, 429, { ok: false, error: 'too_many_requests' });
   }
@@ -111,6 +122,10 @@ export default async function handler(req, res) {
   }
 
   const offer = ALLOWED_OFFERS[offerPackage];
+  const shippingFee = shippingForRequest(req, now);
+  const orderTotal = offer.productTotal + shippingFee;
+  const shippingText = shippingFee === 0 ? 'مجاني ضمن عرض الساعتين' : '35 درهم';
+
   const payload = {
     submitted_at: new Date().toISOString(),
     form_version: 'landing-v2',
@@ -122,7 +137,9 @@ export default async function handler(req, res) {
     offer_package: offerPackage,
     offer_quantity_kg: offerPackage.replace('KG', ''),
     offer_unit_price: String(offer.unit),
-    offer_total: String(offer.total),
+    offer_product_total: String(offer.productTotal),
+    shipping_fee: String(shippingFee),
+    offer_total: String(orderTotal),
     source: 'AzarBio Landing Page V2',
     utm_source: clean(body.utm_source, 120),
     utm_medium: clean(body.utm_medium, 120),
@@ -131,7 +148,11 @@ export default async function handler(req, res) {
     utm_term: clean(body.utm_term, 160),
     landing_page: clean(body.landing_page || req.headers.referer || '', 500),
     consent_order: 'yes',
-    notes: ['العنوان: ' + address, notes ? 'ملاحظة: ' + notes : ''].filter(Boolean).join(' | '),
+    notes: [
+      'العنوان: ' + address,
+      'التوصيل: ' + shippingText,
+      notes ? 'ملاحظة: ' + notes : ''
+    ].filter(Boolean).join(' | '),
   };
 
   const webhook = String(process.env.MAKE_WEBHOOK_URL || '').trim();
@@ -148,7 +169,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'AzarBio-Vercel-Lead-Proxy/2.0',
+        'User-Agent': 'AzarBio-Vercel-Lead-Proxy/2.1',
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
@@ -161,7 +182,12 @@ export default async function handler(req, res) {
       return sendJson(res, 502, { ok: false, error: 'upstream_error' });
     }
 
-    return sendJson(res, 200, { ok: true });
+    return sendJson(res, 200, {
+      ok: true,
+      offer_package: offerPackage,
+      shipping_fee: shippingFee,
+      order_total: orderTotal
+    });
   } catch (error) {
     console.error('AzarBio: lead proxy failed', error?.name || '', error?.message || error);
     return sendJson(res, 502, { ok: false, error: 'upstream_unavailable' });
