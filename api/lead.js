@@ -131,7 +131,7 @@ export default async function handler(req, res) {
     utm_term: clean(body.utm_term, 160),
     landing_page: clean(body.landing_page || req.headers.referer || '', 500),
     consent_order: 'yes',
-    notes,
+    notes: ['العنوان: ' + address, notes ? 'ملاحظة: ' + notes : ''].filter(Boolean).join(' | '),
   };
 
   const webhook = String(process.env.MAKE_WEBHOOK_URL || '').trim();
