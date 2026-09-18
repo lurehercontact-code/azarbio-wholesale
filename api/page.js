@@ -68,12 +68,11 @@ export default function handler(req, res) {
     body{margin:0;background:#fff;color:var(--ink);font-family:Arial,Tahoma,"Noto Sans Arabic",sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased;padding-bottom:72px}
     button,input,select,textarea{font:inherit}button{cursor:pointer}img{display:block;width:100%;height:auto}a{color:inherit}
     .wrap{width:min(calc(100% - 24px),1120px);margin:auto}
-    .ticker{overflow:hidden;background:var(--green);color:#fff;border-bottom:1px solid rgba(255,255,255,.1)}
-    .ticker-track{display:flex;width:max-content;gap:42px;padding:8px 0;font-size:12px;font-weight:900;white-space:nowrap;animation:ticker 25s linear infinite}
-    .ticker-item{display:flex;gap:42px}
+    .ticker{overflow:hidden;background:var(--green);color:#fff;border-bottom:1px solid rgba(255,255,255,.1);direction:rtl}
+    .ticker-track{display:flex;width:max-content;min-width:max-content;gap:42px;padding:8px 0;font-size:12px;font-weight:900;white-space:nowrap;will-change:transform;animation:tickerScroll 28s linear infinite}
+    .ticker-item{display:flex;gap:42px;flex:0 0 auto}
     .ticker b{color:#ffe49a}
-    @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(50%)}}
-    @media(prefers-reduced-motion:reduce){.ticker-track{animation:none}}
+    @keyframes tickerScroll{from{transform:translate3d(0,0,0)}to{transform:translate3d(33.333333%,0,0)}}
     .brandrow{display:flex;align-items:center;justify-content:space-between;padding:12px 0}
     .brand{display:flex;align-items:center;gap:9px;text-decoration:none}.mark{width:42px;height:42px;border-radius:14px;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:1000;font-size:21px}.brand b{display:block;color:var(--green);font-size:22px;line-height:1}.brand small{display:block;color:var(--muted);font-size:10px;margin-top:4px}
     .wholesale-pill{background:var(--gold2);color:#6c4b08;border:1px solid #efd58d;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900}
@@ -104,6 +103,7 @@ export default function handler(req, res) {
   <div class="ticker" aria-label="معلومات الجملة والتوصيل">
     <div class="ticker-track">
       <div class="ticker-item"><span>📦 <b>الجملة فقط</b></span><span>الطلب ابتداءً من <b>2.5 كيلو</b></span><span>🚚 التوصيل إلى <b>جميع المدن التي تغطيها شركة التوصيل</b></span></div>
+      <div class="ticker-item" aria-hidden="true"><span>📦 <b>الجملة فقط</b></span><span>الطلب ابتداءً من <b>2.5 كيلو</b></span><span>🚚 التوصيل إلى <b>جميع المدن التي تغطيها شركة التوصيل</b></span></div>
       <div class="ticker-item" aria-hidden="true"><span>📦 <b>الجملة فقط</b></span><span>الطلب ابتداءً من <b>2.5 كيلو</b></span><span>🚚 التوصيل إلى <b>جميع المدن التي تغطيها شركة التوصيل</b></span></div>
     </div>
   </div>
