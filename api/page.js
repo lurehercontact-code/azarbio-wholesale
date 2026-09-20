@@ -60,7 +60,7 @@ export default function handler(req, res) {
   securityHeaders(res);
   const promo = promoState(req, res);
   const pendingOrder = orderPendingState(req);
-  const heroSrc = '/azarbio-wholesale-hero.webp';
+  // Version the image URL so mobile browsers do not keep a previously cached failed response.\n  const heroSrc = '/azarbio-wholesale-hero.webp?v=20260920-2';
 
   const html = `<!doctype html>
 <html lang="ar" dir="rtl">
