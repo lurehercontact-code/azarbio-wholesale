@@ -1,7 +1,7 @@
 const OFFERS = {
-  '2.5KG': { label: 'عرض البداية', qty: '2.5 كغ', unit: 160, productTotal: 400, note: 'مناسب لأول تجربة وإعادة البيع' },
-  '5KG': { label: 'عرض التاجر', qty: '5 كغ', unit: 150, productTotal: 750, note: 'كمية أكبر وسعر/كغ أقل' },
-  '10KG': { label: 'أفضل سعر للكيلو', qty: '10 كغ', unit: 140, productTotal: 1400, note: 'للمحلات والطلبات الأكبر' }
+  '2.5KG': { label: 'عرض البداية', qty: '2.5 كغ', unit: 159.6, productTotal: 399, sachets: 50, note: 'مناسب لأول تجربة وإعادة البيع' },
+  '5KG': { label: 'عرض التاجر', qty: '5 كغ', unit: 149.8, productTotal: 749, sachets: 100, note: 'كمية أكبر وسعر/كغ أقل' },
+  '10KG': { label: 'أفضل سعر للكيلو', qty: '10 كغ', unit: 139.9, productTotal: 1399, sachets: 200, note: 'للمحلات والطلبات الأكبر' }
 };
 
 const PROMO_MS = 2 * 60 * 60 * 1000;
@@ -97,7 +97,7 @@ export default function handler(req, res) {
     .fruit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.fruit{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 7px;text-align:center}.fruit .ico{font-size:28px;line-height:1.1}.fruit b{display:block;color:var(--green);font-size:13px;margin-top:5px}.mix-note{margin-top:12px;background:var(--green3);border:1px solid #d4e7da;border-radius:15px;padding:12px;font-size:12px;color:#355542}
     .opportunity{display:grid;gap:12px;min-width:0}.opportunity>*{min-width:0}.split-card,.why-card,.calc-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:17px;box-shadow:var(--shadow)}.split-card h3,.why-card h3,.calc-card h3{margin:0 0 8px;color:var(--green);font-size:21px}.split-examples{display:grid;grid-template-columns:1fr 1fr;gap:8px}.split-examples div{background:var(--cream);border-radius:14px;padding:13px;text-align:center}.split-examples strong{font-size:25px;color:var(--green);display:block}.split-examples span{font-size:12px;color:var(--muted);font-weight:800}
     .why-list{display:grid;gap:8px}.why-list div{display:flex;align-items:flex-start;gap:8px;font-size:13px}.check{width:22px;height:22px;border-radius:50%;background:var(--green3);color:var(--green);display:grid;place-items:center;font-weight:1000;flex:0 0 auto}
-    .calc-row{display:grid;grid-template-columns:1fr .8fr;gap:8px;align-items:end}.calc-card label{font-size:12px;font-weight:900;color:#3e4d44}.calc-card input{width:100%;height:48px;border:1.5px solid #ccd6cf;border-radius:12px;padding:10px;font-size:16px}.calc-result{background:var(--green);color:#fff;border-radius:14px;padding:12px;text-align:center}.calc-result small{display:block;opacity:.78;font-size:10px}.calc-result strong{font-size:22px}.disclaimer{font-size:10px;color:var(--muted);margin:8px 0 0}
+    .calc-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px}.calc-control{display:flex;flex-direction:column;gap:5px}.calc-card label{font-size:13px;font-weight:900;color:#3e4d44}.calc-card input,.calc-card select{width:100%;height:52px;border:1.5px solid #afc3b5;border-radius:12px;padding:10px;background:#fff;font-size:16px;font-weight:800;color:#173823}.calc-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.calc-result{background:var(--green3);color:var(--green);border:1px solid #cee2d4;border-radius:14px;padding:11px;text-align:center}.calc-result.emphasis{background:var(--green);color:#fff;border-color:var(--green)}.calc-result small{display:block;opacity:.8;font-size:11px;font-weight:800}.calc-result strong{display:block;font-size:22px}.disclaimer{font-size:11px;color:var(--muted);margin:9px 0 0;line-height:1.6}
     .promo{background:linear-gradient(135deg,#0c3e26,#17683e);color:#fff;border-radius:24px;padding:18px;box-shadow:0 18px 38px rgba(15,74,45,.22);position:relative;overflow:hidden}.promo:before{content:"";position:absolute;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06);left:-60px;top:-70px}.promo-top{position:relative;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;min-width:0}.promo h3{font-size:23px;margin:0 0 4px}.promo p{margin:0;font-size:12px;opacity:.88}.free-badge{background:#fff;color:var(--green);border-radius:13px;padding:8px 10px;font-size:11px;font-weight:1000;white-space:nowrap}.timer{position:relative;display:flex;direction:ltr;justify-content:center;gap:7px;margin:16px 0 8px;perspective:700px}.timer-unit{text-align:center}.timer-cube{min-width:66px;padding:10px 8px;border-radius:14px;background:linear-gradient(180deg,#ffe9a7,#dba840);color:#342502;font-size:28px;font-weight:1000;line-height:1;box-shadow:inset 0 2px 0 rgba(255,255,255,.75),0 8px 0 #9c6f1e,0 14px 20px rgba(0,0,0,.25);transform:rotateX(4deg)}.timer-unit small{display:block;margin-top:12px;font-size:10px;opacity:.8}.promo-after{text-align:center;font-size:11px;opacity:.8}
     .offers{display:grid;gap:11px;margin-top:16px;min-width:0}.offers>*{min-width:0}.offer-card{position:relative;background:#fff;border:2px solid var(--line);border-radius:20px;padding:17px;transition:.18s ease}.offer-card.selected{border-color:var(--green);box-shadow:0 0 0 4px rgba(15,74,45,.08)}.offer-card.pro{border-color:#e3c36d;background:linear-gradient(180deg,#fff,#fffaf0)}.offer-badge{position:absolute;left:12px;top:12px;background:var(--green);color:#fff;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:1000}.offer-card h3{font-size:26px;color:var(--green);margin:0}.offer-label{font-size:12px;color:var(--muted);font-weight:900}.price-row{display:flex;align-items:center;justify-content:space-between;gap:9px;border-top:1px solid var(--line);padding-top:11px;margin-top:10px;flex-wrap:wrap}.price-row>strong{font-size:26px;line-height:1.1}.unit-price{display:inline-flex;align-items:baseline;gap:3px;background:var(--green3);color:var(--green);border:1px solid #cfe2d5;border-radius:11px;padding:7px 9px;font-size:13px;font-weight:1000;line-height:1}.unit-price b{font-size:18px;letter-spacing:-.2px}.resale-note{margin-top:8px;color:#4b5d52;font-size:12px;font-weight:900}.shipping-line{margin-top:9px;border-radius:11px;background:var(--green3);padding:8px 9px;color:var(--green);font-size:11px;font-weight:900;display:none}.offer-card.selected .shipping-line{display:block}.offer-btn{width:100%;min-height:47px;border:0;border-radius:13px;background:var(--green);color:#fff;font-weight:1000;margin-top:11px}
     .formbox{background:linear-gradient(145deg,#fff,#f4f8f5);border:2px solid #bfd3c5;border-radius:26px;padding:20px;box-shadow:0 9px 0 #b8cbbd,0 24px 48px rgba(15,74,45,.18),inset 0 1px 0 #fff}.formbox h2{font-size:31px;line-height:1.25;color:var(--green);margin:0 0 7px;font-weight:1000;text-shadow:0 2px 0 #fff}.formbox>p{font-size:17px;line-height:1.7;color:#35483c;margin:0 0 19px;font-weight:800}.order-summary{background:linear-gradient(145deg,#fffdf8,#f4ead6);border:1.5px solid #ddcfb4;border-radius:18px;padding:15px;margin-bottom:18px;box-shadow:0 5px 0 #d8ccb7,0 10px 20px rgba(69,50,16,.08)}.sum-row{display:flex;justify-content:space-between;gap:12px;font-size:15px;padding:6px 0}.sum-row b{font-size:17px}.sum-row.total{border-top:2px dashed #cdbd9f;margin-top:5px;padding-top:11px;font-size:18px}.sum-row.total b{color:var(--green);font-size:21px}.free-text{color:var(--green);font-weight:1000}
@@ -132,7 +132,7 @@ export default function handler(req, res) {
           <span class="kicker">🌿 عرض خاص لأصحاب المحلات</span>
           <h1>2.5 كغ فواكه مجففة بالتبريد <span class="gold">جاهزة لإعادة البيع</span></h1>
           <p class="lead">مزيج مقرمش من 6 فواكه للمكسرات، الحلويات، المقاهي والمتاجر الإلكترونية. لا يحتاج إلى ثلاجة؛ يُحفظ محكماً بعيداً عن الرطوبة.</p>
-          <div class="hero-offer"><div><b>عرض البداية: 2.5 كغ</b><span>160 درهم للكيلو · تقريباً 50 كيس × 50g</span></div><strong>400 DH</strong></div>
+          <div class="hero-offer"><div><b>عرض البداية: 2.5 كغ</b><span>159.6 درهم للكيلو · تقريباً 50 كيس × 50g</span></div><strong>399 DH</strong></div>
           <div class="hero-cta"><a class="cta-main" href="#order">اطلب الآن — سنتصل للتأكيد</a><a class="cta-ghost" href="#business">شوف حساب إعادة البيع</a></div>
         </div>
         <div class="hero-media">
@@ -172,9 +172,18 @@ export default function handler(req, res) {
             <div class="why-list"><div><span class="check">✓</span><span>منتج مختلف بصرياً عن السناكات المعتادة.</span></div><div><span class="check">✓</span><span>سهل تقسيمه إلى أحجام مناسبة لطريقة البيع عندك.</span></div><div><span class="check">✓</span><span>القوام المقرمش يعطي تجربة أكل ممتعة ويساعد على عرض المنتج بطريقة جذابة.</span></div><div><span class="check">✓</span><span>يمكن حفظه مدة طويلة نسبياً عندما يبقى محكماً وجافاً؛ المدة الدقيقة حسب تعبئتك وشروط المورد.</span></div></div>
           </div>
           <div class="calc-card">
-            <h3>احسب المداخيل النظرية</h3>
-            <div class="calc-row"><div><label for="resalePrice">ثمن بيع 50g عندك</label><input id="resalePrice" type="number" inputmode="decimal" min="1" max="200" value="20"></div><div class="calc-result"><small>50 كيس × السعر</small><strong id="calcRevenue">1000 DH</strong></div></div>
-            <p class="disclaimer">هذه مداخيل نظرية قبل تكلفة العبوات، الإشهار، التوصيل والمصاريف الأخرى؛ ليست ربحاً مضموناً.</p>
+            <h3>حاسبة البيع والهامش</h3>
+            <div class="calc-controls">
+              <div class="calc-control"><label for="calcOffer">اختر العرض</label><select id="calcOffer"><option value="2.5KG">2.5 كغ — 399 DH</option><option value="5KG">5 كغ — 749 DH</option><option value="10KG">10 كغ — 1399 DH</option></select></div>
+              <div class="calc-control"><label for="resalePrice">ثمن بيع كيس 50g</label><input id="resalePrice" type="number" inputmode="decimal" min="1" max="200" value="15"></div>
+            </div>
+            <div class="calc-stats">
+              <div class="calc-result"><small>عدد أكياس 50g</small><strong id="calcSachets">50</strong></div>
+              <div class="calc-result"><small>مجموع المبيعات</small><strong id="calcRevenue">750 DH</strong></div>
+              <div class="calc-result"><small>ثمن شراء العرض</small><strong id="calcCost">399 DH</strong></div>
+              <div class="calc-result emphasis"><small>الهامش قبل المصاريف</small><strong id="calcMargin">351 DH</strong></div>
+            </div>
+            <p class="disclaimer">مثال حسابي: الهامش هو مجموع المبيعات ناقص ثمن شراء الفواكه فقط. تكلفة الأكياس والملصقات والتوصيل والإشهار وأي فاقد تُخصم للوصول إلى الربح الصافي.</p>
           </div>
         </div>
       </div>
@@ -192,19 +201,19 @@ export default function handler(req, res) {
         <div class="offers">
           <article class="offer-card selected" data-offer="2.5KG" tabindex="0">
             <h3>2.5 كغ</h3><div class="offer-label">عرض البداية</div>
-            <div class="price-row"><strong>400 DH</strong><span class="unit-price"><b>160</b> DH/كغ</span></div><div class="resale-note">≈ 50 كيس × 50g قبل فاقد التعبئة</div>
+            <div class="price-row"><strong>399 DH</strong><span class="unit-price"><b>159.6</b> DH/كغ</span></div><div class="resale-note">≈ 50 كيس × 50g قبل فاقد التعبئة</div>
             <div class="shipping-line">🚚 <span class="shipping-copy">التوصيل مجاني حتى محلك خلال العرض</span></div>
             <button class="offer-btn" type="button">اختيار 2.5 كغ</button>
           </article>
           <article class="offer-card pro" data-offer="5KG" tabindex="0">
             <span class="offer-badge">عرض التاجر</span><h3>5 كغ</h3><div class="offer-label">كمية أكبر</div>
-            <div class="price-row"><strong>750 DH</strong><span class="unit-price"><b>150</b> DH/كغ</span></div><div class="resale-note">≈ 100 كيس × 50g قبل فاقد التعبئة</div>
+            <div class="price-row"><strong>749 DH</strong><span class="unit-price"><b>149.8</b> DH/كغ</span></div><div class="resale-note">≈ 100 كيس × 50g قبل فاقد التعبئة</div>
             <div class="shipping-line">🚚 <span class="shipping-copy">التوصيل مجاني حتى محلك خلال العرض</span></div>
             <button class="offer-btn" type="button">اختيار 5 كغ</button>
           </article>
           <article class="offer-card" data-offer="10KG" tabindex="0">
             <span class="offer-badge">أفضل سعر/كغ</span><h3>10 كغ</h3><div class="offer-label">للطلبات الأكبر</div>
-            <div class="price-row"><strong>1400 DH</strong><span class="unit-price"><b>140</b> DH/كغ</span></div><div class="resale-note">≈ 200 كيس × 50g قبل فاقد التعبئة</div>
+            <div class="price-row"><strong>1399 DH</strong><span class="unit-price"><b>139.9</b> DH/كغ</span></div><div class="resale-note">≈ 200 كيس × 50g قبل فاقد التعبئة</div>
             <div class="shipping-line">🚚 <span class="shipping-copy">التوصيل مجاني حتى محلك خلال العرض</span></div>
             <button class="offer-btn" type="button">اختيار 10 كغ</button>
           </article>
@@ -218,9 +227,9 @@ export default function handler(req, res) {
           <h2>سجّل طلبك في أقل من دقيقة</h2><p>الاسم والهاتف والمدينة والكمية فقط. سنتصل بك لتأكيد الطلب وأخذ العنوان قبل الشحن.</p>
           <div class="order-summary">
             <div class="sum-row"><span>العرض</span><b id="sumOffer">2.5 كغ</b></div>
-            <div class="sum-row"><span>ثمن المنتج</span><b id="sumProduct">400 DH</b></div>
+            <div class="sum-row"><span>ثمن المنتج</span><b id="sumProduct">399 DH</b></div>
             <div class="sum-row"><span>التوصيل</span><b id="sumShipping" class="free-text">مجاني</b></div>
-            <div class="sum-row total"><span>المجموع</span><b id="sumTotal">400 DH</b></div>
+            <div class="sum-row total"><span>المجموع</span><b id="sumTotal">399 DH</b></div>
           </div>
           <div class="pending-order${pendingOrder.active ? " show" : ""}" id="pendingOrderNotice" aria-live="polite">
             <div class="pending-icon">✓</div>
@@ -237,7 +246,7 @@ export default function handler(req, res) {
               <div class="field"><label for="name">الاسم الكامل *</label><input id="name" name="name" type="text" autocomplete="name" minlength="2" maxlength="100" required placeholder="مثال: محمد العلوي"></div>
               <div class="field"><label for="phone">رقم الهاتف *</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="06XXXXXXXX أو 07XXXXXXXX"></div>
               <div class="field"><label for="city">المدينة *</label><input id="city" name="city" type="text" autocomplete="address-level2" maxlength="80" required placeholder="مثال: الدار البيضاء"></div>
-              <div class="field full"><label for="offerSelect">الكمية المطلوبة *</label><select id="offerSelect" required><option value="2.5KG">2.5 كغ — 400 DH (160 DH/كغ)</option><option value="5KG">5 كغ — 750 DH (150 DH/كغ)</option><option value="10KG">10 كغ — 1400 DH (140 DH/كغ)</option></select></div>
+              <div class="field full"><label for="offerSelect">الكمية المطلوبة *</label><select id="offerSelect" required><option value="2.5KG">2.5 كغ — 399 DH (159.6 DH/كغ)</option><option value="5KG">5 كغ — 749 DH (149.8 DH/كغ)</option><option value="10KG">10 كغ — 1399 DH (139.9 DH/كغ)</option></select></div>
             </div>
             <input type="hidden" name="consent_order" value="yes">
             <button type="submit" class="primary" id="submitBtn">أرسل طلبي — سنتصل بك للتأكيد</button>
@@ -261,7 +270,7 @@ export default function handler(req, res) {
       <details><summary>كيفاش نقدر نقسم 2.5 كغ؟</summary><p>حسابياً: 50 كيس من 50g، أو حوالي 62 كيس من 40g. خذ بعين الاعتبار طريقة التعبئة وأي فاقد بسيط.</p></details>
       <details><summary>واش كيحتاج الثلاجة؟</summary><p>لا. خليه محكم الإغلاق، جاف، وبعيداً عن الرطوبة والحرارة المباشرة.</p></details>
       <details><summary>واش التوصيل مجاني؟</summary><p id="faqShipping">نعم خلال عرض الساعتين من أول زيارة. بعد انتهاء العرض يصبح التوصيل 35 درهم.</p></details>
-      <details><summary>واش الربح مضمون؟</summary><p>لا توجد أرباح مضمونة. النتيجة تعتمد على سعر البيع، تكلفة العبوة، الإشهار، موقع المحل والمصاريف الأخرى. لهذا وضعنا حاسبة مداخيل نظرية بدل وعود ربح غير واقعية.</p></details>
+      <details><summary>واش نقدر نربح من هذا العرض؟</summary><p>بإذن الله، ثمن الجملة كيعطي فرصة ربح جيدة للتاجر إذا اختار ثمن بيع مناسب. مثال: عرض 2.5 كغ يعطي تقريباً 50 كيس من 50g. إذا بعت الكيس بـ12 درهم، مجموع المبيعات يكون 600 درهم، والفرق مع ثمن الشراء 399 درهم هو 201 درهم قبل خصم ثمن الأكياس والملصقات والتوصيل والإشهار وأي مصاريف أخرى.</p></details>
     </div></section>
 
     <section class="section" id="whatsapp"><div class="wrap"><div class="wa"><h2>عندك سؤال قبل الطلب؟</h2><p>واتساب للاستفسارات فقط. إذا كنت جاهزاً للطلب استعمل الفورم باش تبقى معلوماتك مسجلة بشكل صحيح.</p><a href="https://wa.me/212708101099?text=%D8%B3%D9%84%D8%A7%D9%85%D8%8C%20%D8%B9%D9%86%D8%AF%D9%8A%20%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D8%B9%D8%B1%D9%88%D8%B6%20AzarBio%20%D9%84%D9%84%D8%AC%D9%85%D9%84%D8%A9" target="_blank" rel="noopener">تواصل عبر واتساب</a></div></div></section>
@@ -312,7 +321,7 @@ export default function handler(req, res) {
       }
       updatePromo();setInterval(updatePromo,1000);
 
-      var resale=document.getElementById('resalePrice');function calc(){var p=Math.max(0,Number(resale.value)||0);document.getElementById('calcRevenue').textContent=Math.round(p*50)+' DH'}resale.addEventListener('input',calc);calc();
+      var resale=document.getElementById('resalePrice'),calcOffer=document.getElementById('calcOffer');function calc(){var p=Math.max(0,Number(resale.value)||0),o=offers[calcOffer.value]||offers['2.5KG'],revenue=p*o.sachets,margin=revenue-o.productTotal;document.getElementById('calcSachets').textContent=o.sachets;document.getElementById('calcRevenue').textContent=money(revenue);document.getElementById('calcCost').textContent=money(o.productTotal);document.getElementById('calcMargin').textContent=money(margin)}resale.addEventListener('input',calc);calcOffer.addEventListener('change',calc);calc();
 
       function validPhone(value){var d=String(value||'').replace(/\\D/g,'');if(d.indexOf('212')===0)d='0'+d.slice(3);return /^0[67]\\d{8}$/.test(d)}
       function showStatus(message,type){status.textContent=message;status.className='status show '+type}function clearStatus(){status.className='status';status.textContent=''}function showPendingState(){if(form)form.style.display='none';if(pendingNotice)pendingNotice.classList.add('show')}function openSuccess(){if(!successModal)return;successModal.classList.add('show');successModal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';setTimeout(function(){if(successClose)successClose.focus()},40)}function closeSuccess(){if(!successModal)return;successModal.classList.remove('show');successModal.setAttribute('aria-hidden','true');document.body.style.overflow=''}if(successClose)successClose.addEventListener('click',closeSuccess);if(successModal)successModal.addEventListener('click',function(e){if(e.target===successModal)closeSuccess()});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&successModal&&successModal.classList.contains('show'))closeSuccess()});
