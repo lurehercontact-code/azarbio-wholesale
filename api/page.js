@@ -1,5 +1,5 @@
 const OFFERS = {
-  '2.5KG': { label: 'عرض البداية', qty: '2.5 كغ', unit: 159.6, productTotal: 399, sachets: 50, note: 'مناسب لأول تجربة وإعادة البيع' },
+  '2.5KG': { label: 'عرض البداية', qty: '2.5 كغ', unit: 179.6, productTotal: 449, sachets: 50, note: 'مناسب لأول تجربة وإعادة البيع' },
   '5KG': { label: 'عرض التاجر', qty: '5 كغ', unit: 149.8, productTotal: 749, sachets: 100, note: 'كمية أكبر وسعر/كغ أقل' },
   '10KG': { label: 'أفضل سعر للكيلو', qty: '10 كغ', unit: 139.9, productTotal: 1399, sachets: 200, note: 'للمحلات والطلبات الأكبر' }
 };
@@ -135,7 +135,7 @@ export default function handler(req, res) {
           <span class="kicker">🌿 عرض خاص لأصحاب المحلات</span>
           <h1>2.5 كغ فواكه مجففة بالتبريد <span class="gold">جاهزة لإعادة البيع</span></h1>
           <p class="lead">مزيج مقرمش من 6 فواكه للمكسرات، الحلويات، المقاهي والمتاجر الإلكترونية. لا يحتاج إلى ثلاجة؛ يُحفظ محكماً بعيداً عن الرطوبة.</p>
-          <div class="hero-offer"><div><b>عرض البداية: 2.5 كغ</b><span>159.6 درهم للكيلو · تقريباً 50 كيس × 50g</span></div><strong>399 DH</strong></div>
+          <div class="hero-offer"><div><b>عرض البداية: 2.5 كغ</b><span>179.6 درهم للكيلو · تقريباً 50 كيس × 50g</span></div><strong>449 DH</strong></div>
           <div class="hero-cta"><a class="cta-main" href="#order">اطلب الآن — سنتصل للتأكيد</a><a class="cta-ghost" href="#business">شوف حساب إعادة البيع</a></div>
         </div>
         <div class="hero-media">
@@ -185,14 +185,14 @@ export default function handler(req, res) {
           <div class="calc-card">
             <h3>حاسبة البيع والهامش</h3>
             <div class="calc-controls">
-              <div class="calc-control"><label for="calcOffer">اختر العرض</label><select id="calcOffer"><option value="2.5KG">2.5 كغ — 399 DH</option><option value="5KG">5 كغ — 749 DH</option><option value="10KG">10 كغ — 1399 DH</option></select></div>
+              <div class="calc-control"><label for="calcOffer">اختر العرض</label><select id="calcOffer"><option value="2.5KG">2.5 كغ — 449 DH</option><option value="5KG">5 كغ — 749 DH</option><option value="10KG">10 كغ — 1399 DH</option></select></div>
               <div class="calc-control"><label for="resalePrice">ثمن بيع كيس 50g</label><input id="resalePrice" type="number" inputmode="decimal" min="1" max="200" value="15"></div>
             </div>
             <div class="calc-stats">
               <div class="calc-result"><small>عدد أكياس 50g</small><strong id="calcSachets">50</strong></div>
               <div class="calc-result"><small>مجموع المبيعات</small><strong id="calcRevenue">750 DH</strong></div>
-              <div class="calc-result"><small>المنتوج + أكياس التعبئة</small><strong id="calcCost">439 DH</strong></div>
-              <div class="calc-result emphasis"><small>الباقي في أرباحك</small><strong id="calcMargin">311 DH</strong></div>
+              <div class="calc-result"><small>المنتوج + أكياس التعبئة</small><strong id="calcCost">489 DH</strong></div>
+              <div class="calc-result emphasis"><small>الباقي في أرباحك</small><strong id="calcMargin">261 DH</strong></div>
             </div>
             <p class="disclaimer">الحساب يخصم ثمن شراء العرض وثمن أكياس التعبئة فقط، على أساس 0.8 درهم للكيس. الربح الفعلي قد يتغير حسب ثمن بيعك وأي فاقد في التعبئة.</p>
           </div>
@@ -236,7 +236,7 @@ export default function handler(req, res) {
         <div class="offers">
           <article class="offer-card selected" data-offer="2.5KG" tabindex="0">
             <h3>2.5 كغ</h3><div class="offer-label">عرض البداية</div>
-            <div class="price-row"><strong>399 DH</strong><span class="unit-price"><b>159.6</b> DH/كغ</span></div><div class="resale-note">≈ 50 كيس × 50g قبل فاقد التعبئة</div>
+            <div class="price-row"><strong>449 DH</strong><span class="unit-price"><b>179.6</b> DH/كغ</span></div><div class="resale-note">≈ 50 كيس × 50g قبل فاقد التعبئة</div>
             <div class="shipping-line">🚚 <span class="shipping-copy">التوصيل مجاني حتى محلك خلال العرض</span></div>
             <button class="offer-btn" type="button">اختيار 2.5 كغ</button>
           </article>
@@ -262,9 +262,9 @@ export default function handler(req, res) {
           <h2>سجّل طلبك في أقل من دقيقة</h2><p>الاسم والهاتف والمدينة والكمية فقط. سنتصل بك لتأكيد الطلب وأخذ العنوان قبل الشحن.</p>
           <div class="order-summary">
             <div class="sum-row"><span>العرض</span><b id="sumOffer">2.5 كغ</b></div>
-            <div class="sum-row"><span>ثمن المنتج</span><b id="sumProduct">399 DH</b></div>
+            <div class="sum-row"><span>ثمن المنتج</span><b id="sumProduct">449 DH</b></div>
             <div class="sum-row"><span>التوصيل</span><b id="sumShipping" class="free-text">مجاني</b></div>
-            <div class="sum-row total"><span>المجموع</span><b id="sumTotal">399 DH</b></div>
+            <div class="sum-row total"><span>المجموع</span><b id="sumTotal">449 DH</b></div>
           </div>
           <div class="pending-order${pendingOrder.active ? " show" : ""}" id="pendingOrderNotice" aria-live="polite">
             <div class="pending-icon">✓</div>
@@ -281,7 +281,7 @@ export default function handler(req, res) {
               <div class="field"><label for="name">الاسم الكامل *</label><input id="name" name="name" type="text" autocomplete="name" minlength="2" maxlength="100" required placeholder="مثال: محمد العلوي"></div>
               <div class="field"><label for="phone">رقم الهاتف *</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="06XXXXXXXX أو 07XXXXXXXX"></div>
               <div class="field"><label for="city">المدينة *</label><input id="city" name="city" type="text" autocomplete="address-level2" maxlength="80" required placeholder="مثال: الدار البيضاء"></div>
-              <div class="field full"><label for="offerSelect">الكمية المطلوبة *</label><select id="offerSelect" required><option value="2.5KG">2.5 كغ — 399 DH (159.6 DH/كغ)</option><option value="5KG">5 كغ — 749 DH (149.8 DH/كغ)</option><option value="10KG">10 كغ — 1399 DH (139.9 DH/كغ)</option></select></div>
+              <div class="field full"><label for="offerSelect">الكمية المطلوبة *</label><select id="offerSelect" required><option value="2.5KG">2.5 كغ — 449 DH (179.6 DH/كغ)</option><option value="5KG">5 كغ — 749 DH (149.8 DH/كغ)</option><option value="10KG">10 كغ — 1399 DH (139.9 DH/كغ)</option></select></div>
             </div>
             <input type="hidden" name="consent_order" value="yes">
             <button type="submit" class="primary" id="submitBtn">أرسل طلبي — سنتصل بك للتأكيد</button>
@@ -305,7 +305,7 @@ export default function handler(req, res) {
       <details><summary>كيفاش نقدر نقسم 2.5 كغ؟</summary><p>حسابياً: 50 كيس من 50g، أو حوالي 62 كيس من 40g. خذ بعين الاعتبار طريقة التعبئة وأي فاقد بسيط.</p></details>
       <details><summary>واش كيحتاج الثلاجة؟</summary><p>لا. خليه محكم الإغلاق، جاف، وبعيداً عن الرطوبة والحرارة المباشرة.</p></details>
       <details><summary>واش التوصيل مجاني؟</summary><p id="faqShipping">نعم، التوصيل مجاني لمدة 7 أيام من أول زيارة. بعد انتهاء العرض يصبح التوصيل 35 درهم.</p></details>
-      <details><summary>واش نقدر نربح من هذا العرض؟</summary><p>بإذن الله، ثمن الجملة كيعطي فرصة ربح جيدة للتاجر إذا اختار ثمن بيع مناسب. مثال: عرض 2.5 كغ يعطي تقريباً 50 كيس من 50g. إذا بعت الكيس بـ12 درهم، مجموع المبيعات يكون 600 درهم، والفرق مع ثمن الشراء 399 درهم هو 201 درهم قبل خصم ثمن الأكياس والملصقات والتوصيل والإشهار وأي مصاريف أخرى.</p></details>
+      <details><summary>واش نقدر نربح من هذا العرض؟</summary><p>بإذن الله، ثمن الجملة كيعطي فرصة ربح جيدة للتاجر إذا اختار ثمن بيع مناسب. مثال: عرض 2.5 كغ يعطي تقريباً 50 كيس من 50g. إذا بعت الكيس بـ12 درهم، مجموع المبيعات يكون 600 درهم. بعد خصم 449 درهم ثمن العرض و40 درهم ثمن 50 كيس تعبئة، كيبقى ليك تقريباً 111 درهم.</p></details>
     </div></section>
 
     <section class="section" id="whatsapp"><div class="wrap"><div class="wa"><h2>عندك سؤال قبل الطلب؟</h2><p>واتساب للاستفسارات فقط. إذا كنت جاهزاً للطلب استعمل الفورم باش تبقى معلوماتك مسجلة بشكل صحيح.</p><a href="https://wa.me/212708101099?text=%D8%B3%D9%84%D8%A7%D9%85%D8%8C%20%D8%B9%D9%86%D8%AF%D9%8A%20%D8%A7%D8%B3%D8%AA%D9%81%D8%B3%D8%A7%D8%B1%20%D8%B9%D9%86%20%D8%B9%D8%B1%D9%88%D8%B6%20AzarBio%20%D9%84%D9%84%D8%AC%D9%85%D9%84%D8%A9" target="_blank" rel="noopener">تواصل عبر واتساب</a></div></div></section>
