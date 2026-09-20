@@ -87,9 +87,9 @@ function injectAnalytics(html) {
         try { window.clarity('event', name); } catch (_) {}
       };
       const valueFor = (offer) => ({
-        '2.5KG':400,
-        '5KG':750,
-        '10KG':1400
+        '2.5KG':399,
+        '5KG':749,
+        '10KG':1399
       })[offer] || 0;
 
       const setupDomTracking = () => {
