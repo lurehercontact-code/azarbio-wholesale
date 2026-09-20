@@ -136,8 +136,8 @@ export default function handler(req, res) {
           <div class="hero-cta"><a class="cta-main" href="#order">اطلب الآن — سنتصل للتأكيد</a><a class="cta-ghost" href="#business">شوف حساب إعادة البيع</a></div>
         </div>
         <div class="hero-media">
-          <img src="${heroSrc}" width="800" height="800" alt="عرض الجملة للفواكه المجففة بالتبريد" width="800" height="800" fetchpriority="high" fetchpriority="high" decoding="async">
-          <span class="stock-badge">مخزون جملة · ساشي كبير</span>
+          <img src="${heroSrc}" width="800" height="800" alt="عرض الجملة للفواكه المجففة بالتبريد" width="800" height="800" fetchpriority="high" decoding="async">
+          
         </div>
       </div>
       <div class="trust"><div>🥭 6 فواكه في المزيج</div><div>📦 ابتداءً من 2.5 كغ</div><div>🔒 حفظ محكم وجاف</div></div>
