@@ -87,9 +87,9 @@ function injectAnalytics(html) {
         try { window.clarity('event', name); } catch (_) {}
       };
       const valueFor = (offer) => ({
-        '2.5KG':447.5,
-        '5KG':799,
-        '10KG':1450
+        '2.5KG':400,
+        '5KG':750,
+        '10KG':1400
       })[offer] || 0;
 
       const setupDomTracking = () => {
@@ -168,7 +168,7 @@ function injectAnalytics(html) {
               window.fbq('track', 'Lead', {
                 currency:'MAD',
                 value:valueFor(offer),
-                content_name:'AzarBio - Wholesale Lead V2',
+                content_name:'AzarBio - Wholesale Lead V3 Short Form',
                 content_category:'Fruits lyophilises en gros',
                 content_ids:offer ? [offer] : []
               });
@@ -176,7 +176,7 @@ function injectAnalytics(html) {
                 currency:'MAD',
                 value:valueFor(offer),
                 offer_package:offer || 'unknown',
-                form_version:'landing-v2'
+                form_version:'landing-v3-short'
               });
               clarityEvent('generate_lead');
             } else {
