@@ -96,6 +96,7 @@ export default function handler(req, res) {
     .trust{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.trust div{border:1px solid var(--line);background:#fff;border-radius:14px;padding:10px 6px;text-align:center;font-size:11px;font-weight:900;color:var(--green);box-shadow:0 5px 14px rgba(15,74,45,.04)}
     .section{padding:36px 0}.soft{background:var(--cream)}.section-title{margin-bottom:18px}.section-title h2{font-size:27px;line-height:1.3;color:var(--green);margin:0 0 5px}.section-title p{font-size:14px;color:var(--muted);margin:0}
     .fruit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.fruit{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 7px;text-align:center}.fruit .ico{font-size:28px;line-height:1.1}.fruit b{display:block;color:var(--green);font-size:13px;margin-top:5px}.mix-note{margin-top:12px;background:var(--green3);border:1px solid #d4e7da;border-radius:15px;padding:12px;font-size:12px;color:#355542}
+    .real-product-section{padding:0 0 36px;background:var(--cream)}.real-photo{position:relative;overflow:hidden;margin:0;border:1px solid var(--line);border-radius:22px;background:#eef1ef;box-shadow:var(--shadow)}.real-photo img{width:100%;aspect-ratio:4/3;object-fit:cover}.real-photo-badge{position:absolute;right:12px;bottom:12px;max-width:calc(100% - 24px);margin:0;padding:8px 11px;border:1px solid rgba(15,74,45,.15);border-radius:999px;background:rgba(255,255,255,.94);box-shadow:0 6px 18px rgba(0,0,0,.14);color:var(--green);font-size:12px;font-weight:1000;line-height:1.4}
     .opportunity{display:grid;gap:12px;min-width:0}.opportunity>*{min-width:0}.split-card,.why-card,.calc-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:17px;box-shadow:var(--shadow)}.split-card h3,.why-card h3,.calc-card h3{margin:0 0 8px;color:var(--green);font-size:21px}.split-examples{display:grid;grid-template-columns:1fr 1fr;gap:8px}.split-examples div{background:var(--cream);border-radius:14px;padding:13px;text-align:center}.split-examples strong{font-size:25px;color:var(--green);display:block}.split-examples span{font-size:12px;color:var(--muted);font-weight:800}
     .why-list{display:grid;gap:8px}.why-list div{display:flex;align-items:flex-start;gap:8px;font-size:13px}.check{width:22px;height:22px;border-radius:50%;background:var(--green3);color:var(--green);display:grid;place-items:center;font-weight:1000;flex:0 0 auto}
     .calc-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px}.calc-control{display:flex;flex-direction:column;gap:5px}.calc-card label{font-size:13px;font-weight:900;color:#3e4d44}.calc-card input,.calc-card select{width:100%;height:52px;border:1.5px solid #afc3b5;border-radius:12px;padding:10px;background:#fff;font-size:16px;font-weight:800;color:#173823}.calc-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.calc-result{background:var(--green3);color:var(--green);border:1px solid #cee2d4;border-radius:14px;padding:11px;text-align:center}.calc-result.emphasis{background:var(--green);color:#fff;border-color:var(--green)}.calc-result small{display:block;opacity:.8;font-size:11px;font-weight:800}.calc-result strong{display:block;font-size:22px}.disclaimer{font-size:11px;color:var(--muted);margin:9px 0 0;line-height:1.6}
@@ -156,6 +157,15 @@ export default function handler(req, res) {
           <div class="fruit"><div class="ico">◉</div><b>جاك فروت</b></div>
         </div>
         <div class="mix-note">القوام خفيف ومقرمش، والألوان طبيعية حسب نوع الفاكهة. للحفاظ على القرمشة: سد العبوة جيداً وخليها بعيداً عن الرطوبة والحرارة المباشرة.</div>
+      </div>
+    </section>
+
+    <section class="real-product-section" aria-label="صورة حقيقية للمنتوج">
+      <div class="wrap">
+        <figure class="real-photo">
+          <img src="/real-product-phone.svg" width="900" height="675" loading="lazy" decoding="async" alt="صورة حقيقية لمزيج الفواكه المجففة بالتبريد داخل العبوة">
+          <figcaption class="real-photo-badge">📱 صورة حقيقية للمنتوج بواسطة عدسة الهاتف</figcaption>
+        </figure>
       </div>
     </section>
 
