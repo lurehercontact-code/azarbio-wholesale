@@ -1,7 +1,7 @@
 const ALLOWED_OFFERS = {
-  '2.5KG': { unit: 160, productTotal: 400 },
-  '5KG': { unit: 150, productTotal: 750 },
-  '10KG': { unit: 140, productTotal: 1400 },
+  '2.5KG': { unit: 159.6, productTotal: 399 },
+  '5KG': { unit: 149.8, productTotal: 749 },
+  '10KG': { unit: 139.9, productTotal: 1399 },
 };
 
 const RATE_WINDOW_MS = 10 * 60_000;
