@@ -60,7 +60,7 @@ export default function handler(req, res) {
   securityHeaders(res);
   const promo = promoState(req, res);
   const pendingOrder = orderPendingState(req);
-  const heroSrc = '/azarbio-wholesale-hero.webp';
+  const heroSrc = '/azarbio-hero-fixed.svg';
 
   const html = `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -136,7 +136,7 @@ export default function handler(req, res) {
           <div class="hero-cta"><a class="cta-main" href="#order">اطلب الآن — سنتصل للتأكيد</a><a class="cta-ghost" href="#business">شوف حساب إعادة البيع</a></div>
         </div>
         <div class="hero-media">
-          <img src="${heroSrc}" width="800" height="800" alt="ساشي كبير من الفواكه المجففة بالتبريد مع صحن ومخزون كراتين" fetchpriority="high" decoding="async">
+          <img src="${heroSrc}" width="800" height="800" alt="عرض الجملة للفواكه المجففة بالتبريد" width="700" height="700" fetchpriority="high" fetchpriority="high" decoding="async">
           <span class="stock-badge">مخزون جملة · ساشي كبير</span>
         </div>
       </div>
