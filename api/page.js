@@ -4,8 +4,8 @@ const OFFERS = {
   '10KG': { label: 'أفضل سعر للكيلو', qty: '10 كغ', unit: 139.9, productTotal: 1399, sachets: 200, note: 'للمحلات والطلبات الأكبر' }
 };
 
-const PROMO_MS = 2 * 60 * 60 * 1000;
-const PROMO_COOKIE = 'az_promo_start';
+const PROMO_MS = 7 * 24 * 60 * 60 * 1000;
+const PROMO_COOKIE = 'az_weekly_shipping_start';
 const ORDER_PENDING_COOKIE = 'az_order_pending';
 const ORDER_PENDING_MS = 3 * 24 * 60 * 60_000;
 
@@ -191,10 +191,10 @@ export default function handler(req, res) {
             <div class="calc-stats">
               <div class="calc-result"><small>عدد أكياس 50g</small><strong id="calcSachets">50</strong></div>
               <div class="calc-result"><small>مجموع المبيعات</small><strong id="calcRevenue">750 DH</strong></div>
-              <div class="calc-result"><small>ثمن شراء العرض</small><strong id="calcCost">399 DH</strong></div>
-              <div class="calc-result emphasis"><small>الهامش قبل المصاريف</small><strong id="calcMargin">351 DH</strong></div>
+              <div class="calc-result"><small>المنتوج + أكياس التعبئة</small><strong id="calcCost">439 DH</strong></div>
+              <div class="calc-result emphasis"><small>الباقي في أرباحك</small><strong id="calcMargin">311 DH</strong></div>
             </div>
-            <p class="disclaimer">مثال حسابي: الهامش هو مجموع المبيعات ناقص ثمن شراء الفواكه فقط. تكلفة الأكياس والملصقات والتوصيل والإشهار وأي فاقد تُخصم للوصول إلى الربح الصافي.</p>
+            <p class="disclaimer">الحساب يخصم ثمن شراء العرض وثمن أكياس التعبئة فقط، على أساس 0.8 درهم للكيس. الربح الفعلي قد يتغير حسب ثمن بيعك وأي فاقد في التعبئة.</p>
           </div>
         </div>
       </div>
@@ -227,9 +227,9 @@ export default function handler(req, res) {
     <section class="section soft" id="offers">
       <div class="wrap">
         <div class="promo" id="promoBox">
-          <div class="promo-top"><div><h3 id="promoTitle">عرض التوصيل المجاني</h3><p id="promoSubtitle">متاح لمدة ساعتين من أول زيارة على هذا المتصفح.</p></div><span class="free-badge" id="promoBadge">🚚 التوصيل 0 درهم</span></div>
-          <div class="timer" id="timer"><div class="timer-unit"><div class="timer-cube" id="hh">02</div><small>ساعة</small></div><div class="timer-unit"><div class="timer-cube" id="mm">00</div><small>دقيقة</small></div><div class="timer-unit"><div class="timer-cube" id="ss">00</div><small>ثانية</small></div></div>
-          <div class="promo-after" id="promoAfter">بعد انتهاء العرض: التوصيل 35 درهم.</div>
+          <div class="promo-top"><div><h3 id="promoTitle">أسبوع التوصيل المجاني</h3><p id="promoSubtitle">الفرصة متاحة لمدة 7 أيام من أول زيارة. اغتنمها قبل انتهاء العداد.</p></div><span class="free-badge" id="promoBadge">🚚 التوصيل 0 درهم</span></div>
+          <div class="timer" id="timer"><div class="timer-unit"><div class="timer-cube" id="dd">07</div><small>يوم</small></div><div class="timer-unit"><div class="timer-cube" id="hh">00</div><small>ساعة</small></div><div class="timer-unit"><div class="timer-cube" id="mm">00</div><small>دقيقة</small></div></div>
+          <div class="promo-after" id="promoAfter">سجّل طلبك قبل انتهاء المهلة واستفد من التوصيل المجاني.</div>
         </div>
 
         <div class="section-title" style="margin-top:24px"><h2>اختر عرض الجملة</h2><p>شوف الثمن الإجمالي وثمن الكيلو بوضوح، ثم اضغط على العرض باش يظهر التوصيل والمجموع النهائي.</p></div>
@@ -304,7 +304,7 @@ export default function handler(req, res) {
       <details><summary>شنو كاين فالساشي 2.5 كغ؟</summary><p>المزيج يضم الفريز، البنان، المانجا، الكيوي، التفاح والجاك فروت.</p></details>
       <details><summary>كيفاش نقدر نقسم 2.5 كغ؟</summary><p>حسابياً: 50 كيس من 50g، أو حوالي 62 كيس من 40g. خذ بعين الاعتبار طريقة التعبئة وأي فاقد بسيط.</p></details>
       <details><summary>واش كيحتاج الثلاجة؟</summary><p>لا. خليه محكم الإغلاق، جاف، وبعيداً عن الرطوبة والحرارة المباشرة.</p></details>
-      <details><summary>واش التوصيل مجاني؟</summary><p id="faqShipping">نعم خلال عرض الساعتين من أول زيارة. بعد انتهاء العرض يصبح التوصيل 35 درهم.</p></details>
+      <details><summary>واش التوصيل مجاني؟</summary><p id="faqShipping">نعم، التوصيل مجاني لمدة 7 أيام من أول زيارة. بعد انتهاء العرض يصبح التوصيل 35 درهم.</p></details>
       <details><summary>واش نقدر نربح من هذا العرض؟</summary><p>بإذن الله، ثمن الجملة كيعطي فرصة ربح جيدة للتاجر إذا اختار ثمن بيع مناسب. مثال: عرض 2.5 كغ يعطي تقريباً 50 كيس من 50g. إذا بعت الكيس بـ12 درهم، مجموع المبيعات يكون 600 درهم، والفرق مع ثمن الشراء 399 درهم هو 201 درهم قبل خصم ثمن الأكياس والملصقات والتوصيل والإشهار وأي مصاريف أخرى.</p></details>
     </div></section>
 
@@ -348,18 +348,18 @@ export default function handler(req, res) {
 
       function updatePromo(){
         var left=Math.max(0,deadline-Date.now()),active=left>0;shipping=active?0:35;
-        var h=Math.floor(left/3600000),m=Math.floor((left%3600000)/60000),s=Math.floor((left%60000)/1000);
-        document.getElementById('hh').textContent=String(h).padStart(2,'0');document.getElementById('mm').textContent=String(m).padStart(2,'0');document.getElementById('ss').textContent=String(s).padStart(2,'0');
-        document.getElementById('promoTitle').textContent=active?'عرض التوصيل المجاني':'انتهى عرض التوصيل المجاني';
-        document.getElementById('promoSubtitle').textContent=active?'متاح لمدة ساعتين من أول زيارة على هذا المتصفح.':'يمكنك مواصلة الطلب؛ التوصيل الآن 35 درهم.';
+        var d=Math.floor(left/86400000),h=Math.floor((left%86400000)/3600000),m=Math.floor((left%3600000)/60000);
+        document.getElementById('dd').textContent=String(d).padStart(2,'0');document.getElementById('hh').textContent=String(h).padStart(2,'0');document.getElementById('mm').textContent=String(m).padStart(2,'0');
+        document.getElementById('promoTitle').textContent=active?'أسبوع التوصيل المجاني':'انتهى عرض التوصيل المجاني';
+        document.getElementById('promoSubtitle').textContent=active?'الفرصة متاحة لمدة 7 أيام من أول زيارة. اغتنمها قبل انتهاء العداد.':'يمكنك مواصلة الطلب؛ التوصيل الآن 35 درهم.';
         document.getElementById('promoBadge').textContent=active?'🚚 التوصيل 0 درهم':'🚚 التوصيل 35 درهم';
-        document.getElementById('promoAfter').textContent=active?'بعد انتهاء العرض: التوصيل 35 درهم.':'العرض انتهى على هذا المتصفح.';
-        document.getElementById('faqShipping').textContent=active?'نعم خلال عرض الساعتين من أول زيارة. بعد انتهاء العرض يصبح التوصيل 35 درهم.':'عرض الساعتين انتهى، والتوصيل الآن 35 درهم.';
+        document.getElementById('promoAfter').textContent=active?'سجّل طلبك قبل انتهاء المهلة واستفد من التوصيل المجاني.':'انتهت مهلة التوصيل المجاني على هذا المتصفح.';
+        document.getElementById('faqShipping').textContent=active?'نعم، التوصيل مجاني لمدة 7 أيام من أول زيارة. بعد انتهاء العرض يصبح التوصيل 35 درهم.':'انتهى عرض الأسبوع، والتوصيل الآن 35 درهم.';
         updateSummary();
       }
       updatePromo();setInterval(updatePromo,1000);
 
-      var resale=document.getElementById('resalePrice'),calcOffer=document.getElementById('calcOffer');function calc(){var p=Math.max(0,Number(resale.value)||0),o=offers[calcOffer.value]||offers['2.5KG'],revenue=p*o.sachets,margin=revenue-o.productTotal;document.getElementById('calcSachets').textContent=o.sachets;document.getElementById('calcRevenue').textContent=money(revenue);document.getElementById('calcCost').textContent=money(o.productTotal);document.getElementById('calcMargin').textContent=money(margin)}resale.addEventListener('input',calc);calcOffer.addEventListener('change',calc);calc();
+      var resale=document.getElementById('resalePrice'),calcOffer=document.getElementById('calcOffer');function calc(){var p=Math.max(0,Number(resale.value)||0),o=offers[calcOffer.value]||offers['2.5KG'],revenue=p*o.sachets,bagCost=o.sachets*.8,totalCost=o.productTotal+bagCost,margin=revenue-totalCost;document.getElementById('calcSachets').textContent=o.sachets;document.getElementById('calcRevenue').textContent=money(revenue);document.getElementById('calcCost').textContent=money(totalCost);document.getElementById('calcMargin').textContent=money(margin)}resale.addEventListener('input',calc);calcOffer.addEventListener('change',calc);calc();
 
       function validPhone(value){var d=String(value||'').replace(/\\D/g,'');if(d.indexOf('212')===0)d='0'+d.slice(3);return /^0[67]\\d{8}$/.test(d)}
       function showStatus(message,type){status.textContent=message;status.className='status show '+type}function clearStatus(){status.className='status';status.textContent=''}function showPendingState(){if(form)form.style.display='none';if(pendingNotice)pendingNotice.classList.add('show')}function openSuccess(){if(!successModal)return;successModal.classList.add('show');successModal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';setTimeout(function(){if(successClose)successClose.focus()},40)}function closeSuccess(){if(!successModal)return;successModal.classList.remove('show');successModal.setAttribute('aria-hidden','true');document.body.style.overflow=''}if(successClose)successClose.addEventListener('click',closeSuccess);if(successModal)successModal.addEventListener('click',function(e){if(e.target===successModal)closeSuccess()});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&successModal&&successModal.classList.contains('show'))closeSuccess()});
