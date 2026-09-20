@@ -1,7 +1,7 @@
 const ALLOWED_OFFERS = {
-  '2.5KG': { unit: 179, productTotal: 447.5 },
-  '5KG': { unit: 159.8, productTotal: 799 },
-  '10KG': { unit: 145, productTotal: 1450 },
+  '2.5KG': { unit: 160, productTotal: 400 },
+  '5KG': { unit: 150, productTotal: 750 },
+  '10KG': { unit: 140, productTotal: 1400 },
 };
 
 const RATE_WINDOW_MS = 10 * 60_000;
@@ -111,7 +111,6 @@ export default async function handler(req, res) {
   if (name.length < 2) return sendJson(res, 400, { ok: false, error: 'invalid_name' });
   if (!phone) return sendJson(res, 400, { ok: false, error: 'invalid_phone' });
   if (city.length < 2) return sendJson(res, 400, { ok: false, error: 'invalid_city' });
-  if (address.length < 5) return sendJson(res, 400, { ok: false, error: 'invalid_address' });
   if (!ALLOWED_OFFERS[offerPackage]) return sendJson(res, 400, { ok: false, error: 'invalid_offer' });
   if (consentOrder !== 'yes') return sendJson(res, 400, { ok: false, error: 'consent_required' });
   if (Number.isFinite(elapsedMs) && elapsedMs > 0 && elapsedMs < 2500) {
@@ -129,7 +128,7 @@ export default async function handler(req, res) {
 
   const payload = {
     submitted_at: new Date().toISOString(),
-    form_version: 'landing-v2',
+    form_version: 'landing-v3-short',
     name,
     phone,
     city,
@@ -150,7 +149,7 @@ export default async function handler(req, res) {
     landing_page: clean(body.landing_page || req.headers.referer || '', 500),
     consent_order: 'yes',
     notes: [
-      'العنوان: ' + address,
+      address ? 'العنوان: ' + address : 'العنوان: يؤخذ هاتفياً عند التأكيد',
       'التوصيل: ' + shippingText,
       notes ? 'ملاحظة: ' + notes : ''
     ].filter(Boolean).join(' | '),
