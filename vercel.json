@@ -1,5 +1,6 @@
 {
   "routes": [
+    { "src": "^/offre-famille/?$", "dest": "/api/consumer-meta" },
     { "src": "^/$", "dest": "/api/page-meta" },
     { "src": "^/index\\.html$", "dest": "/api/page-meta" },
     { "handle": "filesystem" }
