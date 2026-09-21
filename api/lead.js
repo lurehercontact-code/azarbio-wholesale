@@ -1,5 +1,5 @@
 const ALLOWED_OFFERS = {
-  '2.5KG': { unit: 159.6, productTotal: 399 },
+  '2.5KG': { unit: 179.6, productTotal: 449 },
   '5KG': { unit: 149.8, productTotal: 749 },
   '10KG': { unit: 139.9, productTotal: 1399 },
 };
@@ -10,8 +10,8 @@ const PHONE_WINDOW_MS = 3 * 24 * 60 * 60_000;
 const PHONE_MAX = 1;
 const ORDER_PENDING_MS = 3 * 24 * 60 * 60_000;
 const ORDER_PENDING_COOKIE = 'az_order_pending';
-const PROMO_MS = 2 * 60 * 60 * 1000;
-const PROMO_COOKIE = 'az_promo_start';
+const PROMO_MS = 7 * 24 * 60 * 60 * 1000;
+const PROMO_COOKIE = 'az_weekly_shipping_start';
 
 const rateStore = globalThis.__azarbioRateStoreV2 || new Map();
 const phoneStore = globalThis.__azarbioPhoneStoreV2 || new Map();
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
   const offer = ALLOWED_OFFERS[offerPackage];
   const shippingFee = shippingForRequest(req, now);
   const orderTotal = offer.productTotal + shippingFee;
-  const shippingText = shippingFee === 0 ? 'مجاني ضمن عرض الساعتين' : '35 درهم';
+  const shippingText = shippingFee === 0 ? 'مجاني ضمن عرض الأسبوع' : '35 درهم';
 
   const payload = {
     submitted_at: new Date().toISOString(),
