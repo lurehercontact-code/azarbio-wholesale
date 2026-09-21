@@ -46,7 +46,7 @@ const html = String.raw`<!doctype html>
   <div class="modal" id="thanks" role="dialog" aria-modal="true"><div class="modal-box"><div class="ok">✅</div><h2>هنيئاً لك!</h2><p>لقد استفدت من التوصيل بالمجان. نتصل بك قريباً للتحقق من المعلومات وإرسال طلبك في أقرب وقت.</p><b id="thanksOffer"></b></div></div>
   <script>
   (function(){
-    var offers={500G:{name:'500 غرام',price:199},'1KG':{name:'1 كيلو',price:299},'2KG_PLUS_500G':{name:'2 كيلو + 500غ مجاناً',price:499}};
+    var offers={'500G':{name:'500 غرام',price:199},'1KG':{name:'1 كيلو',price:299},'2KG_PLUS_500G':{name:'2 كيلو + 500غ مجاناً',price:499}};
     var started=Date.now(), selected='2KG_PLUS_500G', form=document.getElementById('form');
     function choose(key){selected=key;form.offer_package.value=key;document.getElementById('sumName').textContent=offers[key].name;document.getElementById('sumPrice').textContent=offers[key].price;document.querySelectorAll('[data-choice]').forEach(function(b){b.classList.toggle('on',b.dataset.choice===key)});document.querySelectorAll('[data-offer]').forEach(function(b){b.classList.toggle('selected',b.dataset.offer===key)})}
     document.querySelectorAll('[data-choice]').forEach(function(b){b.onclick=function(){choose(b.dataset.choice)}});document.querySelectorAll('[data-offer]').forEach(function(b){b.onclick=function(){choose(b.dataset.offer);document.getElementById('order').scrollIntoView()}});
