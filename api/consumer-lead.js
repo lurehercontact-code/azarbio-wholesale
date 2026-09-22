@@ -61,6 +61,11 @@ export default async function handler(req, res) {
   if (clean(body.website, 120)) return sendJson(res, 200, { ok: true, ignored: true });
 
   const now = Date.now();
+  const pendingCookie = String(req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('az_b2c_order_pending='));
+  const pendingSince = Number(pendingCookie ? pendingCookie.slice('az_b2c_order_pending='.length) : 0);
+  if (Number.isFinite(pendingSince) && pendingSince > 0 && pendingSince <= now && now - pendingSince < PHONE_WINDOW_MS) {
+    return sendJson(res, 409, { ok: false, error: 'order_pending' });
+  }
   const ip = clean(String(req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown', 80);
   if (!touchWindow(rateStore, ip, now, RATE_WINDOW_MS, RATE_MAX)) {
     return sendJson(res, 429, { ok: false, error: 'too_many_requests' });
@@ -112,6 +117,7 @@ export default async function handler(req, res) {
 
   const webhook = String(process.env.MAKE_WEBHOOK_URL || '').trim();
   if (!/^https:\/\/hook\.eu1\.make\.com\/[A-Za-z0-9_-]+$/.test(webhook)) {
+    phoneStore.delete(phone);
     return sendJson(res, 503, { ok: false, error: 'service_not_configured' });
   }
 
@@ -125,10 +131,14 @@ export default async function handler(req, res) {
       signal: controller.signal,
     });
     clearTimeout(timer);
-    if (!response.ok) return sendJson(res, 502, { ok: false, error: 'upstream_error' });
+    if (!response.ok) {
+      phoneStore.delete(phone);
+      return sendJson(res, 502, { ok: false, error: 'upstream_error' });
+    }
     res.setHeader('Set-Cookie', 'az_b2c_order_pending=' + now + '; Path=/; Max-Age=259200; HttpOnly; Secure; SameSite=Lax');
     return sendJson(res, 200, { ok: true, offer_package: offerPackage, order_total: offer.productTotal, shipping_fee: 0 });
   } catch (_) {
+    phoneStore.delete(phone);
     return sendJson(res, 502, { ok: false, error: 'upstream_unavailable' });
   }
 }
