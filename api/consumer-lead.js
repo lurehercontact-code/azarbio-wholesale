@@ -32,11 +32,9 @@ function parseBody(req) {
 }
 
 function normalizeMoroccanMobile(value) {
-  let digits = String(value ?? '').replace(/\D/g, '');
-  if (digits.startsWith('00212')) digits = digits.slice(5);
-  if (digits.startsWith('212')) digits = digits.slice(3);
-  if (digits.startsWith('0')) digits = digits.slice(1);
-  return /^[67]\d{8}$/.test(digits) ? '0' + digits : '';
+  const compact = String(value ?? '').trim().replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).replace(/[\s()-]/g, '');
+  const match = /^(?:0|(?:\+|00)?212)([67]\d{8})$/.exec(compact);
+  return match ? '0' + match[1] : '';
 }
 
 function touchWindow(store, key, now, windowMs, limit) {
