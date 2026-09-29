@@ -11,7 +11,7 @@ const html = String.raw`<!doctype html>
     :root{--g:#0b5837;--g2:#173f2c;--cream:#fff9ed;--gold:#f1b93a;--red:#bb2d2d;--ink:#17221b;--muted:#637067}
     *{box-sizing:border-box}html{scroll-behavior:smooth;overflow-x:hidden;max-width:100%}body{margin:0;width:100%;max-width:100%;overflow-x:hidden;background:#fffdf8;color:var(--ink);font-family:Tahoma,Arial,sans-serif;line-height:1.55}.wrap{width:min(1080px,calc(100% - 28px));max-width:100%;margin:auto}
     .top{background:linear-gradient(90deg,#9f211f,#ce3a31);color:#fff;text-align:center;padding:10px 8px;font-weight:900;font-size:16px;position:sticky;top:0;z-index:20}.timer{font-variant-numeric:tabular-nums;color:#ffe680;margin-inline-start:7px}
-    header{padding:16px 0 8px}.brand{font-size:26px;font-weight:1000;color:var(--g)}.brand small{display:block;font-size:12px;color:var(--muted);font-weight:700}
+    header{padding:8px 0 6px;text-align:center}.brand{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--g)}.brand-logo{display:block;width:min(270px,74vw);height:auto;max-height:104px;object-fit:contain}.brand small{display:block;font-size:14px;color:var(--g2);font-weight:800;line-height:1.35}
     .hero{display:grid;grid-template-columns:1.03fr .97fr;gap:28px;align-items:center;padding:12px 0 30px}.hero-media{position:relative}.hero img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:28px;box-shadow:0 18px 46px #173f2c2b}.real{position:absolute;right:14px;bottom:14px;background:#fff;border-radius:99px;padding:8px 12px;font-size:12px;font-weight:900;box-shadow:0 6px 20px #0002}
     .eyebrow{color:var(--red);font-weight:900}.hero h1{font-size:clamp(32px,5vw,58px);line-height:1.12;margin:7px 0 10px;color:var(--g2)}.rating-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px 11px;margin:0 0 15px;font-size:15px;font-weight:900}.rating-stars{color:#f1b322;letter-spacing:1px;direction:ltr}.rating-score{font-size:18px;color:var(--g2)}.rating-divider{width:1px;height:20px;background:#c9d2cc}.delivered{color:#536158}.hero p{font-size:19px;margin:0 0 16px}.checks{display:grid;gap:8px;margin:14px 0}.checks span:before{content:'✓';display:inline-grid;place-items:center;width:22px;height:22px;background:#daf5e5;color:var(--g);border-radius:50%;margin-left:7px;font-weight:900}
     .cta{display:inline-flex;align-items:center;justify-content:center;min-height:54px;padding:0 24px;border:0;border-radius:14px;background:var(--g);color:#fff;text-decoration:none;font-size:18px;font-weight:900;box-shadow:0 9px 0 #073a25;cursor:pointer}.cta:active{transform:translateY(3px);box-shadow:0 6px 0 #073a25}
@@ -31,7 +31,7 @@ const html = String.raw`<!doctype html>
 </head>
 <body data-pending-until="__PENDING_UNTIL__">
   <div class="top">🚚 التوصيل بالمجان إلى نهاية اليوم <span class="timer" id="timer">--:--:--</span></div>
-  <header class="wrap"><div class="brand">Vitamor<small>فواكه مجففة بالتبريد</small></div></header>
+  <header class="wrap"><div class="brand"><img class="brand-logo" src="/vitamor-logo.svg" width="1200" height="455" alt="Vitamor" fetchpriority="high"><small>أجود الفواكه المجففة بالتبريد</small></div></header>
   <main>
     <div class="wrap hero">
       <div class="hero-media"><img src="/consumer-real-product.webp" width="900" height="900" alt="صورة حقيقية لخليط فواكه Vitamor داخل الكيس" fetchpriority="high"><span class="real">📱 صورة حقيقية للمنتوج بعدسة الهاتف</span></div>
