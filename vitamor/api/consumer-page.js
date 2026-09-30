@@ -31,7 +31,7 @@ const html = String.raw`<!doctype html>
 </head>
 <body data-pending-until="__PENDING_UNTIL__">
   <div class="top">🚚 التوصيل بالمجان إلى نهاية اليوم <span class="timer" id="timer">--:--:--</span></div>
-  <header class="wrap"><div class="brand"><img class="brand-logo" src="/vitamor-logo.svg" width="1200" height="455" alt="Vitamor" fetchpriority="high"><small>أجود الفواكه المجففة بالتبريد</small></div><a class="cta header-order" href="#customer-details" data-order>أطلب الآن</a></header>
+  <header class="wrap"><div class="brand"><img class="brand-logo" src="/vitamor-logo.svg" width="720" height="263" alt="Vitamor" fetchpriority="high"><small>أجود الفواكه المجففة بالتبريد</small></div><a class="cta header-order" href="#customer-details" data-order>أطلب الآن</a></header>
   <main>
     <div class="wrap hero">
       <div class="hero-media"><img src="/consumer-real-product.webp" width="900" height="900" alt="صورة حقيقية لخليط فواكه Vitamor داخل الكيس" fetchpriority="high"><span class="real">📱 صورة حقيقية للمنتوج بعدسة الهاتف</span></div>
