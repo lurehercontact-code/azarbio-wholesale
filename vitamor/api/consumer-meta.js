@@ -1,6 +1,6 @@
 import page from './consumer-page.js';
 
-const PIXEL_ID = '1114950737910507';
+const PIXEL_ID = '1335011538356784';
 const GA4_ID = 'G-GWDREPDPJC';
 const CLARITY_ID = 'ygx63c3vf8';
 
