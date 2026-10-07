@@ -45,6 +45,53 @@ function touchWindow(store, key, now, windowMs, limit) {
   return true;
 }
 
+
+const cartRateStore = globalThis.__vitamorCartRateStore || new Map();
+globalThis.__vitamorCartRateStore = cartRateStore;
+
+async function saveCart(req, res, body) {
+  const now = Date.now();
+  const phone = normalizeMoroccanMobile(body.phone);
+  if (!phone) return sendJson(res, 400, { ok: false, error: 'invalid_phone' });
+  const offer = OFFERS[clean(body.offer_package, 24)];
+  if (!offer) return sendJson(res, 400, { ok: false, error: 'invalid_offer' });
+  const elapsed = Number(body.client_elapsed_ms);
+  if (!Number.isFinite(elapsed) || elapsed < 0) return sendJson(res, 400, { ok: false, error: 'too_fast' });
+  const origin = String(req.headers.origin || '');
+  if (origin) {
+    try { if (new URL(origin).host !== req.headers.host) return sendJson(res, 403, { ok: false, error: 'invalid_origin' }); }
+    catch (_) { return sendJson(res, 403, { ok: false, error: 'invalid_origin' }); }
+  }
+  const ip = clean(String(req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown', 80);
+  for (const [key, times] of cartRateStore) if (!times.some(time => now - time < RATE_WINDOW_MS)) cartRateStore.delete(key);
+  if (!touchWindow(cartRateStore, ip, now, RATE_WINDOW_MS, 60)) return sendJson(res, 429, { ok: false, error: 'too_many_requests' });
+  const webhook = String(process.env.MAKE_WEBHOOK_URL || '').trim();
+  if (!/^https:\/\/hook\.eu1\.make\.com\/[A-Za-z0-9_-]+$/.test(webhook)) return sendJson(res, 503, { ok: false, error: 'service_not_configured' });
+  const startedAt = now - Math.min(elapsed, 86400000);
+  const revision = Number(body.cart_updated_at);
+  const updatedAt = Number.isFinite(revision) && revision >= startedAt && revision <= now + 60000 ? Math.min(revision, now) : now;
+  const values = [[phone, startedAt, updatedAt, 'Abandonné', clean(body.name, 100), clean(body.city, 80),
+    clean(body.address, 220), offer.label, offer.productTotal, clean(body.utm_campaign, 160),
+    clean(body.utm_source, 120), clean(body.utm_content, 160)]];
+  const payload = {
+    submitted_at: new Date(now).toISOString(), phone,
+    business_type: 'Panier abandonné / B2C', source: 'Vitamor Offre Famille B2C',
+    notes: JSON.stringify({ values }),
+  };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(webhook, { method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'Vitamor-Cart-Vercel/1.0' },
+      body: JSON.stringify(payload), signal: controller.signal });
+    if (!response.ok) return sendJson(res, 502, { ok: false, error: 'upstream_error' });
+    const result = await response.json();
+    if (result.ok !== true || result.status !== 'Abandonné') return sendJson(res, 502, { ok: false, error: 'capture_not_ready' });
+    return sendJson(res, 200, { ok: true, status: 'Abandonné' });
+  } catch (_) { return sendJson(res, 502, { ok: false, error: 'upstream_unavailable' }); }
+  finally { clearTimeout(timer); }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -64,6 +111,7 @@ export default async function handler(req, res) {
   if (Number.isFinite(pendingSince) && pendingSince > 0 && pendingSince <= now && now - pendingSince < PHONE_WINDOW_MS) {
     return sendJson(res, 409, { ok: false, error: 'order_pending' });
   }
+  if (body.capture_mode === 'abandoned') return saveCart(req, res, body);
   const ip = clean(String(req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown', 80);
   if (!touchWindow(rateStore, ip, now, RATE_WINDOW_MS, RATE_MAX)) {
     return sendJson(res, 429, { ok: false, error: 'too_many_requests' });

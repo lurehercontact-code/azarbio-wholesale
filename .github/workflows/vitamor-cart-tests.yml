@@ -1,0 +1,17 @@
+name: Vitamor abandoned cart checks
+on:
+  push:
+    branches: [codex/vitamor-abandoned-carts]
+  pull_request:
+    paths:
+      - 'vitamor/**'
+      - '.github/workflows/vitamor-cart-tests.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify cart capture and final order separation
+        run: node --test vitamor/tests/abandoned-cart.test.mjs
