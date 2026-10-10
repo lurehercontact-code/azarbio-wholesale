@@ -79,7 +79,7 @@ const html = String.raw`<!doctype html>
     phoneInput.addEventListener('blur',validatePhone);
     phoneInput.addEventListener('input',function(){if(!phoneError.hidden)validatePhone();else phoneInput.setCustomValidity('')});
     phoneInput.addEventListener('invalid',function(){validatePhone()});
-    var pendingUntil=Number(document.body.dataset.pendingUntil)||0, pendingKey='vitamor_b2c_pending_until', submitting=false;
+    var pendingUntil=Number(document.body.dataset.pendingUntil)||0, pendingKey='vitamor_b2c_pending_until_v2', submitting=false;
     try{var savedUntil=Number(localStorage.getItem(pendingKey));if(savedUntil>Date.now()&&savedUntil<=Date.now()+259200000)pendingUntil=Math.max(pendingUntil,savedUntil)}catch(_){}
     function hasPending(){return pendingUntil>Date.now()}
     function renderPending(){document.body.classList.toggle('pending-active',hasPending())}
@@ -97,6 +97,16 @@ document.querySelectorAll('[data-buy]').forEach(function(b){b.onclick=function(e
     var reviewsToggle=document.getElementById('reviewsToggle'),reviews=document.getElementById('reviews');reviewsToggle.onclick=function(){var expanded=reviews.classList.toggle('expanded');reviewsToggle.setAttribute('aria-expanded',String(expanded));reviewsToggle.textContent=expanded?'عرض تعليقات أقل':'عرض المزيد من الآراء'};
     function tick(){var now=new Date(), parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Casablanca',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(now), h=+parts.find(x=>x.type==='hour').value%24,m=+parts.find(x=>x.type==='minute').value,s=+parts.find(x=>x.type==='second').value,left=86400-(h*3600+m*60+s),hh=String(Math.floor(left/3600)).padStart(2,'0'),mm=String(Math.floor(left%3600/60)).padStart(2,'0'),ss=String(left%60).padStart(2,'0');document.getElementById('timer').textContent=hh+':'+mm+':'+ss}tick();setInterval(tick,1000);document.getElementById('year').textContent=new Date().getFullYear();
 
+    // Keep retries stable, including a reload after a lost response.
+    var activeEvent=null;
+    function orderEventId(phone){
+      if(!activeEvent){try{activeEvent=JSON.parse(sessionStorage.getItem('vitamor_order_event_v2')||'null')}catch(_){}}
+      if(!activeEvent || activeEvent.phone!==phone || activeEvent.until<=Date.now()){
+        activeEvent={phone:phone,id:'web-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)),until:Date.now()+259200000};
+        try{sessionStorage.setItem('vitamor_order_event_v2',JSON.stringify(activeEvent))}catch(_){}
+      }
+      return activeEvent.id;
+    }
     // Save a contactable unfinished cart; only a successful submit records a Lead.
     var cartTimer, cartBusy=false, cartLast='', cartRevision=0, cartRetry=0, cartLastSentAt=0;
     function cartSnapshot(){
@@ -104,7 +114,7 @@ document.querySelectorAll('[data-buy]').forEach(function(b){b.onclick=function(e
       var phone=normalizeMoroccanMobile(phoneInput.value);
       if(!phone) return null;
       var data=Object.fromEntries(new FormData(form).entries()), params=new URLSearchParams(location.search);
-      data.phone=phone;
+      data.phone=phone;data.event_id=orderEventId(phone);
       ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(function(k){data[k]=params.get(k)||''});
       var signature=JSON.stringify([data.phone,data.name,data.city,data.address,data.offer_package,data.utm_campaign,data.utm_source,data.utm_content]);
       data.capture_mode='abandoned';data.client_elapsed_ms=Date.now()-started;
@@ -119,7 +129,7 @@ document.querySelectorAll('[data-buy]').forEach(function(b){b.onclick=function(e
       try {
         var response=await fetch('/api/consumer-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshot.data),keepalive:true});
         var result=await response.json();
-        if(response.ok&&result.ok&&result.status==='Abandonné'){cartLast=snapshot.signature;cartRetry=0}
+        if(response.ok&&result.ok&&(result.status==='Abandonné'||result.status==='Envoyé')){cartLast=snapshot.signature;cartRetry=0;if(result.status==='Envoyé')rememberPending()}
         else if(response.status===429){cartRetry=4}
         else {cartRetry++}
       }catch(_){cartRetry++}
@@ -140,7 +150,7 @@ document.querySelectorAll('[data-buy]').forEach(function(b){b.onclick=function(e
     window.addEventListener('online',queueCartSave);
     window.addEventListener('pageshow',queueCartSave);
 
-    form.onsubmit=async function(e){e.preventDefault();if(hasPending()){renderPending();showDetails();return}if(submitting)return;if(!validatePhone()){phoneInput.focus();phoneInput.reportValidity();return}submitting=true;var submittedOffer=selected;var btn=document.getElementById('submit'),err=document.getElementById('error');err.style.display='none';btn.disabled=true;btn.textContent='جاري تسجيل الطلب...';var fd=new FormData(form),q=new URLSearchParams(location.search),data=Object.fromEntries(fd.entries());data.phone=normalizeMoroccanMobile(phoneInput.value);data.client_elapsed_ms=Date.now()-started;data.landing_page=location.href;['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k=>data[k]=q.get(k)||'');try{var r=await fetch('/api/consumer-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}),j=await r.json();if(!r.ok)throw new Error(j.error||'error');if(j.ignored)throw new Error('ignored');if(j.ok!==true)throw new Error('order_not_saved');rememberPending();document.getElementById('thanksOffer').textContent=offers[submittedOffer].name+' — '+offers[submittedOffer].price+' درهم';document.getElementById('thanks').classList.add('show');if(window.fbq)fbq('track','Lead',{content_name:'Vitamor B2C '+offers[submittedOffer].name,value:offers[submittedOffer].price,currency:'MAD'});if(window.gtag)gtag('event','generate_lead',{currency:'MAD',value:offers[submittedOffer].price,offer:submittedOffer,page_type:'B2C'});}catch(x){if(x.message==='duplicate_phone'||x.message==='order_pending'){rememberPending();showDetails();return}if(x.message==='invalid_phone'){phoneError.hidden=false;phoneInput.setAttribute('aria-invalid','true');phoneInput.setCustomValidity(phoneMessage);phoneInput.focus()}var msg=x.message==='invalid_phone'?phoneMessage:'تعذر تسجيل الطلب الآن. حاول مرة أخرى أو تواصل معنا عبر واتساب.';err.textContent=msg;err.style.display='block';btn.disabled=false;btn.textContent='أكد طلبي — التوصيل بالمجان'}finally{submitting=false}};
+    form.onsubmit=async function(e){e.preventDefault();if(hasPending()){renderPending();showDetails();return}if(submitting)return;if(!validatePhone()){phoneInput.focus();phoneInput.reportValidity();return}submitting=true;var submittedOffer=selected;var btn=document.getElementById('submit'),err=document.getElementById('error');err.style.display='none';btn.disabled=true;btn.textContent='جاري تسجيل الطلب...';var fd=new FormData(form),q=new URLSearchParams(location.search),data=Object.fromEntries(fd.entries());data.phone=normalizeMoroccanMobile(phoneInput.value);data.event_id=orderEventId(data.phone);data.cart_updated_at=Date.now();data.client_elapsed_ms=Date.now()-started;data.landing_page=location.href;['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(k=>data[k]=q.get(k)||'');try{var r=await fetch('/api/consumer-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}),j=await r.json();if(!r.ok)throw new Error(j.error||'error');if(j.ignored)throw new Error('ignored');if(j.ok!==true)throw new Error('order_not_saved');rememberPending();document.getElementById('thanksOffer').textContent=offers[submittedOffer].name+' — '+offers[submittedOffer].price+' درهم';document.getElementById('thanks').classList.add('show');var leadKey='vitamor_lead_'+j.order_id,leadSent=false;try{leadSent=localStorage.getItem(leadKey)==='1'}catch(_){}if(!j.test&&!leadSent){if(window.fbq)fbq('track','Lead',{content_name:'Vitamor B2C '+offers[submittedOffer].name,value:offers[submittedOffer].price,currency:'MAD'});if(window.gtag)gtag('event','generate_lead',{currency:'MAD',value:offers[submittedOffer].price,offer:submittedOffer,page_type:'B2C'});try{localStorage.setItem(leadKey,'1')}catch(_){}}}catch(x){if(x.message==='duplicate_phone'||x.message==='order_pending'){rememberPending();showDetails();return}if(x.message==='invalid_phone'){phoneError.hidden=false;phoneInput.setAttribute('aria-invalid','true');phoneInput.setCustomValidity(phoneMessage);phoneInput.focus()}var msg=x.message==='invalid_phone'?phoneMessage:'تعذر تسجيل الطلب الآن. حاول مرة أخرى أو تواصل معنا عبر واتساب.';err.textContent=msg;err.style.display='block';btn.disabled=false;btn.textContent='أكد طلبي — التوصيل بالمجان'}finally{submitting=false}};
   })();
   </script>
 </body></html>`;
@@ -151,8 +161,8 @@ export default function handler(req, res) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  const cookie = String(req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('vitamor_b2c_order_pending='));
-  const startedAt = Number(cookie ? cookie.slice('vitamor_b2c_order_pending='.length) : 0);
+  const cookie = String(req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('vitamor_b2c_order_pending_v2='));
+  const startedAt = Number(cookie ? cookie.slice('vitamor_b2c_order_pending_v2='.length) : 0);
   const now = Date.now();
   const until = Number.isFinite(startedAt) && startedAt > 0 && startedAt <= now && now - startedAt < 259200000 ? startedAt + 259200000 : 0;
   const requestedLang = new URL(req.url || '/', 'https://vitamor.local').searchParams.get('lang');
