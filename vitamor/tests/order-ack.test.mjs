@@ -1,40 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-
-const source = await readFile(new URL('../api/consumer-lead.js', import.meta.url), 'utf8');
-const { default: handler } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
-process.env.MAKE_WEBHOOK_URL = 'https://hook.eu1.make.com/test-only-not-called';
-let sequence = 0;
-function request(phone) {
-  return { method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': 'test-' + (++sequence) },
-    body: { name: 'Test only', phone, city: 'Test city', offer_package: '1KG', client_elapsed_ms: 10000 } };
+import handler from '../api/consumer-lead.js';
+process.env.DIRECT_SHEET_URL='https://script.google.com/macros/s/TEST_ONLY/exec';
+process.env.DIRECT_SHEET_SECRET='local-test-only-secret-at-least-32-characters';
+let sequence=0;
+async function submit(response,extra={}){
+ const previous=globalThis.fetch;
+ globalThis.fetch=async()=>typeof response==='function'?response():response;
+ const res={headers:{},setHeader(k,v){this.headers[k]=v},end(v){this.body=JSON.parse(v)}};
+ try{await handler({method:'POST',headers:{'content-type':'application/json','x-forwarded-for':'test-'+(++sequence)},body:{name:'Test only',phone:'0600000000',city:'Test city',offer_package:'1KG',client_elapsed_ms:10000,event_id:'test-event-0001',...extra}},res);return res;}finally{globalThis.fetch=previous;}
 }
-async function submit(phone, response) {
-  const original = globalThis.fetch;
-  globalThis.fetch = async () => response;
-  const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, end(body) { this.body = JSON.parse(body); } };
-  try { await handler(request(phone), res); return res; }
-  finally { globalThis.fetch = original; }
-}
-test('queued HTTP 200 does not confirm, set pending cookie, or block retry', async () => {
-  const failed = await submit('0600000001', new Response('Accepted', { status: 200 }));
-  assert.equal(failed.statusCode, 502);
-  assert.equal(failed.headers['Set-Cookie'], undefined);
-  const retry = await submit('0600000001', Response.json({ ok: true }));
-  assert.equal(retry.statusCode, 200);
-  assert.match(retry.headers['Set-Cookie'], /vitamor_b2c_order_pending=/);
+test('queued HTTP 200 does not confirm or set pending, retry can succeed',async()=>{
+ const failed=await submit(new Response('Accepted'));assert.equal(failed.statusCode,502);assert.equal(failed.headers['Set-Cookie'],undefined);
+ const retry=await submit(Response.json({ok:true,receiver_version:2,status:'Order saved',order_id:'TEST-1'}));assert.equal(retry.statusCode,200);assert.match(retry.headers['Set-Cookie'],/vitamor_b2c_order_pending_v2=/);
 });
-test('only a completed order acknowledgement is accepted', async () => {
-  for (const body of [{ ok: false }, { ok: true, ignored: true }, { ok: true, status: 'Abandonné' }, null]) {
-    const res = await submit('0600000002', Response.json(body));
-    assert.equal(res.statusCode, 502);
-    assert.equal(res.headers['Set-Cookie'], undefined);
-  }
+test('only the current receiver and completed order acknowledgement can confirm',async()=>{
+ for(const body of [{ok:true,status:'Order saved',order_id:'old'}, {ok:false}, {ok:true,receiver_version:2,status:'Abandonné'},null]){const r=await submit(Response.json(body));assert.equal(r.statusCode,502);assert.equal(r.headers['Set-Cookie'],undefined);}
 });
-test('full webhook queue fails without marking pending', async () => {
-  const res = await submit('0600000003', new Response('Queue is full', { status: 400 }));
-  assert.equal(res.statusCode, 502);
-  assert.equal(res.body.error, 'upstream_error');
-  assert.equal(res.headers['Set-Cookie'], undefined);
+test('a lost response is retried with the same signed payload',async()=>{
+ let attempts=0;const r=await submit(()=>{if(++attempts===1)throw new TypeError('network');return Response.json({ok:true,receiver_version:2,status:'Order saved',order_id:'TEST-1',duplicate:true})});assert.equal(attempts,2);assert.equal(r.statusCode,200);assert.equal(r.body.duplicate,true);
+});
+test('a duplicate phone is rejected without a new success or pending cookie',async()=>{
+ const r=await submit(Response.json({ok:false,receiver_version:2,error:'duplicate_phone'}));assert.equal(r.statusCode,409);assert.equal(r.headers['Set-Cookie'],undefined);
+});
+test('upstream failures are bounded and cannot mark an order saved',async()=>{
+ let attempts=0;const r=await submit(()=>{attempts++;return new Response('Unavailable',{status:503})});assert.equal(attempts,2);assert.equal(r.statusCode,502);assert.equal(r.headers['Set-Cookie'],undefined);
+});
+test('phone-only capture and completed captures do not set pending cookies',async()=>{
+ for(const status of ['Abandonné','Envoyé']){const r=await submit(Response.json({ok:true,receiver_version:2,status}),{capture_mode:'abandoned',name:'',city:''});assert.equal(r.statusCode,200);assert.equal(r.headers['Set-Cookie'],undefined);}
 });

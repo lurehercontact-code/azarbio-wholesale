@@ -1,197 +1,43 @@
-const OFFERS = {
-  '500G': { quantity: '0.5', productTotal: 199, label: '500 غرام' },
-  '1KG': { quantity: '1', productTotal: 299, label: '1 كيلو' },
-  '2KG_PLUS_500G': { quantity: '2.5', productTotal: 499, label: '2 كيلو + 500غ مجاناً' },
-};
+import {randomUUID} from 'node:crypto';
+import {saveDirect} from '../lib/direct-sheet.js';
 
-const RATE_WINDOW_MS = 10 * 60_000;
-const RATE_MAX = 4;
-const PHONE_WINDOW_MS = 3 * 24 * 60 * 60_000;
-const PHONE_MAX = 1;
-const rateStore = globalThis.__vitamorB2CRateStore || new Map();
-const phoneStore = globalThis.__vitamorB2CPhoneStore || new Map();
-globalThis.__vitamorB2CRateStore = rateStore;
-globalThis.__vitamorB2CPhoneStore = phoneStore;
-
-function clean(value, max = 200) {
-  return String(value ?? '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, max);
+const OFFERS={'500G':199,'1KG':299,'2KG_PLUS_500G':499};
+const WINDOW=600000;
+const rates=globalThis.__vitamorDirectRates||new Map();
+globalThis.__vitamorDirectRates=rates;
+function clean(value,max=200){return String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,max);}
+function send(res,status,body){res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.end(JSON.stringify(body));}
+function phoneNumber(value){const compact=String(value??'').trim().replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-1632)).replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-1776)).replace(/[\s()-]/g,'');const m=/^(?:0|(?:\+|00)?212)([67]\d{8})$/.exec(compact);return m?'0'+m[1]:'';}
+export default async function handler(req,res){
+  if(req.method!=='POST'){res.setHeader('Allow','POST');return send(res,405,{ok:false,error:'method_not_allowed'});}
+  if(!String(req.headers['content-type']||'').toLowerCase().includes('application/json'))return send(res,415,{ok:false,error:'invalid_content_type'});
+  let body;try{body=req.body&&typeof req.body==='object'&&!Buffer.isBuffer(req.body)?req.body:JSON.parse(String(req.body||''));}catch{return send(res,400,{ok:false,error:'invalid_json'});}
+  if(!body||Array.isArray(body)||JSON.stringify(body).length>16000)return send(res,400,{ok:false,error:'invalid_json'});
+  if(clean(body.website))return send(res,200,{ok:true,ignored:true});
+  const origin=String(req.headers.origin||'');
+  if(origin){try{if(new URL(origin).host!==req.headers.host)return send(res,403,{ok:false,error:'invalid_origin'});}catch{return send(res,403,{ok:false,error:'invalid_origin'});}}
+  const now=Date.now(),mode=body.capture_mode==='abandoned'?'abandoned':'order';
+  const phone=phoneNumber(body.phone),offer=clean(body.offer_package,24);
+  if(!phone)return send(res,400,{ok:false,error:'invalid_phone'});
+  if(!Object.hasOwn(OFFERS,offer))return send(res,400,{ok:false,error:'invalid_offer'});
+  const name=clean(body.name,100),city=clean(body.city,80);
+  if(mode==='order'&&name.length<2)return send(res,400,{ok:false,error:'invalid_name'});
+  if(mode==='order'&&city.length<2)return send(res,400,{ok:false,error:'invalid_city'});
+  const elapsed=Number(body.client_elapsed_ms||0);
+  if(!Number.isFinite(elapsed)||elapsed<0||(mode==='order'&&elapsed>0&&elapsed<2200))return send(res,400,{ok:false,error:'too_fast'});
+  const ip=clean(String(req.headers['x-forwarded-for']||'').split(',')[0]||req.socket?.remoteAddress||'unknown',80),key=mode+':'+ip;
+  for(const [k,v]of rates)if(now-v.start>=WINDOW)rates.delete(k);
+  const rate=rates.get(key)||{start:now,count:0};
+  if(rate.count>=(mode==='order'?10:60))return send(res,429,{ok:false,error:'too_many_requests'});
+  rate.count++;rates.set(key,rate);
+  const event=clean(body.event_id,80)||'legacy-'+randomUUID();
+  if(!/^[A-Za-z0-9_-]{8,80}$/.test(event))return send(res,400,{ok:false,error:'invalid_event_id'});
+  const revision=Number(body.cart_updated_at);
+  const data={mode,event_id:event,updated_at:Number.isFinite(revision)&&revision>0&&revision<=now+60000?Math.min(revision,now):now,phone,offer_package:offer,name,city,address:clean(body.address,220),utm_campaign:clean(body.utm_campaign,160),utm_source:clean(body.utm_source,120)||'Vitamor site',utm_content:clean(body.utm_content,160)};
+  const result=await saveDirect(data);
+  if(!result.ok)return send(res,result.error==='duplicate_phone'?409:result.error==='service_not_configured'?503:502,{ok:false,error:result.error});
+  if(mode==='abandoned')return send(res,200,{ok:true,status:result.status});
+  // Only a confirmed Sheet write may hide the form or trigger a Lead.
+  res.setHeader('Set-Cookie','vitamor_b2c_order_pending_v2='+now+'; Path=/; Max-Age=259200; HttpOnly; Secure; SameSite=Lax');
+  return send(res,200,{ok:true,order_id:result.order_id,duplicate:result.duplicate===true,test:result.test===true,offer_package:offer,order_total:OFFERS[offer],shipping_fee:0});
 }
-
-function sendJson(res, status, body) {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.end(JSON.stringify(body));
-}
-
-function parseBody(req) {
-  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
-  try { return JSON.parse(Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body || '')); }
-  catch (_) { return null; }
-}
-
-function normalizeMoroccanMobile(value) {
-  const compact = String(value ?? '').trim().replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 1776)).replace(/[\s()-]/g, '');
-  const match = /^(?:0|(?:\+|00)?212)([67]\d{8})$/.exec(compact);
-  return match ? '0' + match[1] : '';
-}
-
-function touchWindow(store, key, now, windowMs, limit) {
-  const recent = (store.get(key) || []).filter((time) => now - time < windowMs);
-  if (recent.length >= limit) return false;
-  recent.push(now);
-  store.set(key, recent);
-  return true;
-}
-
-
-const cartRateStore = globalThis.__vitamorCartRateStore || new Map();
-globalThis.__vitamorCartRateStore = cartRateStore;
-
-async function saveCart(req, res, body) {
-  const now = Date.now();
-  const phone = normalizeMoroccanMobile(body.phone);
-  if (!phone) return sendJson(res, 400, { ok: false, error: 'invalid_phone' });
-  const offer = OFFERS[clean(body.offer_package, 24)];
-  if (!offer) return sendJson(res, 400, { ok: false, error: 'invalid_offer' });
-  const elapsed = Number(body.client_elapsed_ms);
-  if (!Number.isFinite(elapsed) || elapsed < 0) return sendJson(res, 400, { ok: false, error: 'too_fast' });
-  const origin = String(req.headers.origin || '');
-  if (origin) {
-    try { if (new URL(origin).host !== req.headers.host) return sendJson(res, 403, { ok: false, error: 'invalid_origin' }); }
-    catch (_) { return sendJson(res, 403, { ok: false, error: 'invalid_origin' }); }
-  }
-  const ip = clean(String(req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown', 80);
-  for (const [key, times] of cartRateStore) if (!times.some(time => now - time < RATE_WINDOW_MS)) cartRateStore.delete(key);
-  if (!touchWindow(cartRateStore, ip, now, RATE_WINDOW_MS, 60)) return sendJson(res, 429, { ok: false, error: 'too_many_requests' });
-  const webhook = String(process.env.MAKE_WEBHOOK_URL || '').trim();
-  if (!/^https:\/\/hook\.eu1\.make\.com\/[A-Za-z0-9_-]+$/.test(webhook)) return sendJson(res, 503, { ok: false, error: 'service_not_configured' });
-  const startedAt = now - Math.min(elapsed, 86400000);
-  const revision = Number(body.cart_updated_at);
-  const updatedAt = Number.isFinite(revision) && revision >= startedAt && revision <= now + 60000 ? Math.min(revision, now) : now;
-  const values = [[phone, startedAt, updatedAt, 'Abandonné', clean(body.name, 100), clean(body.city, 80),
-    clean(body.address, 220), offer.label, offer.productTotal, clean(body.utm_campaign, 160),
-    clean(body.utm_source, 120), clean(body.utm_content, 160)]];
-  const payload = {
-    submitted_at: new Date(now).toISOString(), phone,
-    business_type: 'Panier abandonné / B2C', source: 'Vitamor Offre Famille B2C',
-    notes: JSON.stringify({ values }),
-  };
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
-  try {
-    const response = await fetch(webhook, { method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'User-Agent': 'Vitamor-Cart-Vercel/1.0' },
-      body: JSON.stringify(payload), signal: controller.signal });
-    if (!response.ok) return sendJson(res, 502, { ok: false, error: 'upstream_error' });
-    const result = await response.json();
-    if (result.ok !== true || result.status !== 'Abandonné') return sendJson(res, 502, { ok: false, error: 'capture_not_ready' });
-    return sendJson(res, 200, { ok: true, status: 'Abandonné' });
-  } catch (_) { return sendJson(res, 502, { ok: false, error: 'upstream_unavailable' }); }
-  finally { clearTimeout(timer); }
-}
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return sendJson(res, 405, { ok: false, error: 'method_not_allowed' });
-  }
-  if (!String(req.headers['content-type'] || '').toLowerCase().includes('application/json')) {
-    return sendJson(res, 415, { ok: false, error: 'invalid_content_type' });
-  }
-
-  const body = parseBody(req);
-  if (!body) return sendJson(res, 400, { ok: false, error: 'invalid_json' });
-  if (clean(body.website, 120)) return sendJson(res, 200, { ok: true, ignored: true });
-
-  const now = Date.now();
-  const pendingCookie = String(req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('vitamor_b2c_order_pending='));
-  const pendingSince = Number(pendingCookie ? pendingCookie.slice('vitamor_b2c_order_pending='.length) : 0);
-  if (Number.isFinite(pendingSince) && pendingSince > 0 && pendingSince <= now && now - pendingSince < PHONE_WINDOW_MS) {
-    return sendJson(res, 409, { ok: false, error: 'order_pending' });
-  }
-  if (body.capture_mode === 'abandoned') return saveCart(req, res, body);
-  const ip = clean(String(req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown', 80);
-  if (!touchWindow(rateStore, ip, now, RATE_WINDOW_MS, RATE_MAX)) {
-    return sendJson(res, 429, { ok: false, error: 'too_many_requests' });
-  }
-
-  const name = clean(body.name, 100);
-  const phone = normalizeMoroccanMobile(body.phone);
-  const city = clean(body.city, 80);
-  const address = clean(body.address, 220);
-  const offerPackage = clean(body.offer_package, 24);
-  const offer = OFFERS[offerPackage];
-  const elapsedMs = Number(body.client_elapsed_ms || 0);
-  if (name.length < 2) return sendJson(res, 400, { ok: false, error: 'invalid_name' });
-  if (!phone) return sendJson(res, 400, { ok: false, error: 'invalid_phone' });
-  if (city.length < 2) return sendJson(res, 400, { ok: false, error: 'invalid_city' });
-  if (!offer) return sendJson(res, 400, { ok: false, error: 'invalid_offer' });
-  if (elapsedMs > 0 && elapsedMs < 2200) return sendJson(res, 400, { ok: false, error: 'too_fast' });
-  if (!touchWindow(phoneStore, phone, now, PHONE_WINDOW_MS, PHONE_MAX)) {
-    return sendJson(res, 409, { ok: false, error: 'duplicate_phone' });
-  }
-
-  const payload = {
-    submitted_at: new Date().toISOString(),
-    form_version: 'consumer-v1',
-    name,
-    phone,
-    city,
-    address,
-    business_type: 'مستهلك / B2C',
-    offer_package: offer.label,
-    offer_quantity_kg: offer.quantity,
-    offer_unit_price: String(Math.round((offer.productTotal / Number(offer.quantity)) * 10) / 10),
-    offer_product_total: String(offer.productTotal),
-    shipping_fee: '0',
-    offer_total: String(offer.productTotal),
-    source: 'Vitamor Offre Famille B2C',
-    utm_source: clean(body.utm_source, 120),
-    utm_medium: clean(body.utm_medium, 120),
-    utm_campaign: clean(body.utm_campaign, 160),
-    utm_content: clean(body.utm_content, 160),
-    utm_term: clean(body.utm_term, 160),
-    landing_page: clean(body.landing_page || req.headers.referer || '', 500),
-    notes: [
-      'نوع الصفحة: B2C / Offre Famille',
-      'التوصيل: مجاني ضمن عرض اليوم',
-      address ? 'العنوان: ' + address : 'العنوان: يؤخذ هاتفياً عند التأكيد'
-    ].join(' | '),
-  };
-
-  const webhook = String(process.env.MAKE_WEBHOOK_URL || '').trim();
-  if (!/^https:\/\/hook\.eu1\.make\.com\/[A-Za-z0-9_-]+$/.test(webhook)) {
-    phoneStore.delete(phone);
-    return sendJson(res, 503, { ok: false, error: 'service_not_configured' });
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
-  try {
-    const response = await fetch(webhook, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'User-Agent': 'Vitamor-B2C-Vercel/1.0' },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      phoneStore.delete(phone);
-      return sendJson(res, 502, { ok: false, error: 'upstream_error' });
-    }
-    // A paused Make webhook can return HTTP 200 "Accepted" without running
-    // the sheet writes. Only the final WebhookRespond JSON confirms completion.
-    const result = await response.json();
-    if (result?.ok !== true || result.ignored || result.status === 'Abandonné') {
-      phoneStore.delete(phone);
-      return sendJson(res, 502, { ok: false, error: 'order_not_saved' });
-    }
-    res.setHeader('Set-Cookie', 'vitamor_b2c_order_pending=' + now + '; Path=/; Max-Age=259200; HttpOnly; Secure; SameSite=Lax');
-    return sendJson(res, 200, { ok: true, offer_package: offerPackage, order_total: offer.productTotal, shipping_fee: 0 });
-  } catch (_) {
-    phoneStore.delete(phone);
-    return sendJson(res, 502, { ok: false, error: 'upstream_unavailable' });
-  } finally { clearTimeout(timer); }
-}
-
