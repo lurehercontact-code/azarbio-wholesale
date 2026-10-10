@@ -3,7 +3,7 @@ import {createHmac} from 'node:crypto';
 // Credentials remain server-side. Both attempts carry the same event and revision.
 export async function saveDirect(data) {
   const endpoint=String(process.env.DIRECT_SHEET_URL||'').trim();
-  const secret=String(process.env.DIRECT_SHEET_SECRET||'');
+  const secret=String(process.env.DIRECT_SHEET_SECRET||process.env.DIRECT_SHEET_TEST_SECRET||'');
   if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint)||secret.length<32)
     return {ok:false,error:'service_not_configured'};
   const timestamp=Date.now(),payload=JSON.stringify(data);

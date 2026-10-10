@@ -13,7 +13,7 @@ Destination unique : https://docs.google.com/spreadsheets/d/1AsnEnuC38D3izEwHxua
 ## Vercel
 
 Projet `vitamor`, domaine `vitamor-fruits.vercel.app`, dossier racine `vitamor`.
-Production utilise uniquement `DIRECT_SHEET_URL` et `DIRECT_SHEET_SECRET` (Secret serveur). Le transport Make est retiré du gestionnaire de demandes. La version 2 du récepteur est obligatoire : aucun ancien acquittement ne confirme une commande.
+Production utilise uniquement `DIRECT_SHEET_URL` et le Secret serveur existant `DIRECT_SHEET_TEST_SECRET` (nom conservé car Vercel interdit de renommer un Secret ; `DIRECT_SHEET_SECRET` est aussi accepté). Le transport Make est retiré du gestionnaire de demandes. La version 2 du récepteur est obligatoire : aucun ancien acquittement ne confirme une commande.
 
 ## Vérification avant annonces
 
