@@ -1,7 +1,7 @@
-name: Vitamor abandoned cart checks
+name: Vitamor order reception checks
 on:
   push:
-    branches: [codex/vitamor-abandoned-carts]
+    branches: [codex/vitamor-abandoned-carts, codex/direct-sheets-isolated-test]
   pull_request:
     paths:
       - 'vitamor/**'
@@ -13,5 +13,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify cart capture and final order separation
-        run: node --test vitamor/tests/abandoned-cart.test.mjs vitamor/tests/order-ack.test.mjs
+      - name: Verify cart capture, acknowledgement and direct sheet reception
+        run: node --test vitamor/tests/abandoned-cart.test.mjs vitamor/tests/order-ack.test.mjs vitamor/tests/direct-sheet.test.mjs vitamor/tests/direct-test-api.test.mjs

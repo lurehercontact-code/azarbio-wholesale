@@ -25,7 +25,14 @@ test('phone-only capture updates one literal row and preserves manual name/addre
 test('order retry is idempotent and late abandoned snapshots cannot reopen order',()=>{
  const f=fixture(),d=base();f.send(d);const order={...d,mode:'order',name:'Test client',city:'Rabat',updated_at:d.updated_at+10};
  const first=f.send(order),retry=f.send(order);assert.equal(first.status,'Order saved');assert.equal(retry.duplicate,true);assert.equal(first.order_id,retry.order_id);assert.equal(f.sheets.Commandes.rows.length,2);
- assert.equal(f.sheets['Abandonnés'].rows[1][2],'Envoyé');assert.equal(f.send({...d,updated_at:d.updated_at+20}).status,'Envoyé');assert.equal(f.sheets['Abandonnés'].rows[1][2],'Envoyé');
+ const completed=f.sheets['Abandonnés'].rows[1].slice();
+ assert.equal(completed[2],'Envoyé');assert.equal(f.send({...d,updated_at:d.updated_at+20}).status,'Envoyé');assert.deepEqual(f.sheets['Abandonnés'].rows[1],completed);
+});
+test('older final orders complete status without replacing newer cart details',()=>{
+ const f=fixture(),d=base();f.send({...d,name:'Latest name',city:'Latest city',updated_at:d.updated_at+20});
+ const result=f.send({...d,mode:'order',name:'Earlier name',city:'Earlier city',updated_at:d.updated_at+10});
+ assert.equal(result.status,'Order saved');const row=f.sheets['Abandonnés'].rows[1];
+ assert.equal(row[2],'Envoyé');assert.equal(row[3],'Latest name');assert.equal(row[5],'Latest city');assert.equal(row[15],d.updated_at+20);
 });
 test('invalid signatures, live phone numbers and incomplete orders write nothing',()=>{
  const f=fixture(),d=base();assert.equal(f.send(d,'wrong-signature').ok,false);assert.equal(f.send({...d,phone:'0612345678'}).ok,false);assert.equal(f.send({...d,mode:'order'}).ok,false);assert.equal(f.sheets.Commandes.rows.length,1);assert.equal(f.sheets['Abandonnés'].rows.length,1);

@@ -78,9 +78,17 @@ function directWrite_(sheet,index,row) {
   sheet.getRange(rowNumber,2).setNumberFormat('dd/MM/yyyy HH:mm:ss');
   sheet.getRange(rowNumber,13).setNumberFormat('dd/MM/yyyy HH:mm:ss');
 }
-function directUpdateCart_(sheet,rows,index,data,completed) {
+function directUpdateCart_(sheet,rows,index,data,completed,statusOnly) {
   const row=rows[index].slice(); while(row.length<18)row.push('');
+  if(statusOnly) {
+    if(['Abandonné','Nouveau','En attente',''].includes(row[2])) { row[2]='Envoyé'; directWrite_(sheet,index,row); }
+    return;
+  }
   if (!completed && Number(row[15])>=data.revision) return;
+  if(completed && Number(row[15])>data.revision) {
+    if(['Abandonné','Nouveau','En attente',''].includes(row[2])) { row[2]='Envoyé'; directWrite_(sheet,index,row); }
+    return;
+  }
   let before={}; try { before=JSON.parse(row[16]||'{}'); } catch (_) {}
   const snapshot=directSnapshot_(data), fields={name:3,phone:4,city:5,address:6,offer:7,total:8};
   for (const key of Object.keys(fields)) { const c=fields[key]; if(row[c] === before[key])row[c]=snapshot[key]; }
@@ -95,7 +103,7 @@ function directSave_(book,data) {
   if(data.mode==='abandoned') {
     // A delayed pagehide snapshot cannot reopen a completed contact.
     const saved=orderRows.some(r=>String(r[14])===data.phone);
-    if(cartIndex>=0)directUpdateCart_(carts,cartRows,cartIndex,data,saved);
+    if(cartIndex>=0)directUpdateCart_(carts,cartRows,cartIndex,data,saved,saved);
     else if(!saved)directWrite_(carts,cartRows.length,directNewRow_(data,'Abandonné'));
     SpreadsheetApp.flush();
     return {ok:true,status:saved?'Envoyé':'Abandonné',duplicate:cartIndex>=0};
