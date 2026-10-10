@@ -15,12 +15,24 @@ export default async function handler(req,res) {
   const data={mode:input.mode,event_id:input.event_id,updated_at:input.updated_at,phone:input.phone,offer_package:input.offer_package,name:clean(input.name,100),city:clean(input.city,80),address:clean(input.address,220),utm_campaign:clean(input.utm_campaign,160),utm_source:clean(input.utm_source,120),utm_content:clean(input.utm_content,160)};
   if(data.mode==='order'&&(data.name.length<2||data.city.length<2))return send(400,{ok:false,error:'incomplete_order'});
   const payload=JSON.stringify(data),timestamp=now,signature=createHmac('sha256',secret).update(timestamp+'.'+payload).digest('hex');
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
-  try {
-    const upstream=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({timestamp,payload,signature}),signal:controller.signal,redirect:'follow'});
-    const result=await upstream.json();
-    const expected=data.mode==='order'?result.status==='Order saved'&&typeof result.order_id==='string':['Abandonné','Envoyé'].includes(result.status);
-    if(!upstream.ok||result.ok!==true||!expected)return send(502,{ok:false,error:'test_write_not_confirmed'});
-    return send(200,{ok:true,status:result.status,order_id:result.order_id,duplicate:result.duplicate===true});
-  }catch{return send(502,{ok:false,error:'test_receiver_unavailable'});}finally{clearTimeout(timer);}
+  // Reuse the signed payload and event ID: a lost acknowledgement must not create another order.
+  const body=JSON.stringify({timestamp,payload,signature});
+  let failure='test_receiver_network_error';
+  for(let attempt=0;attempt<2;attempt++) {
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+    try {
+      const upstream=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body,signal:controller.signal,redirect:'follow'});
+      if(!upstream.ok) {
+        failure='test_receiver_http_error';
+        if(upstream.status>=500&&attempt===0)continue;
+        return send(502,{ok:false,error:failure,upstream_status:upstream.status});
+      }
+      let result;try{result=await upstream.json();}catch{return send(502,{ok:false,error:'test_receiver_invalid_response'});}
+      const expected=result&& (data.mode==='order'?result.status==='Order saved'&&typeof result.order_id==='string':['Abandonné','Envoyé'].includes(result.status));
+      if(!result||result.ok!==true||!expected)return send(502,{ok:false,error:'test_write_not_confirmed'});
+      return send(200,{ok:true,status:result.status,order_id:result.order_id,duplicate:result.duplicate===true});
+    }catch(error){failure=controller.signal.aborted||error?.name==='AbortError'?'test_receiver_timeout':'test_receiver_network_error';}
+    finally{clearTimeout(timer);}
+  }
+  return send(502,{ok:false,error:failure});
 }
