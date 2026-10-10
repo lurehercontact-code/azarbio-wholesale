@@ -7,7 +7,7 @@ const pageSource = readFileSync(new URL('../api/consumer-page.js', import.meta.u
 test('unfinished carts stay separate from final orders', async () => {
   const calls = [];
   const handler = new Function('fetch','process','Buffer','AbortController','setTimeout','clearTimeout', apiSource + '\nreturn handler;')(
-    async (_, options) => { calls.push(JSON.parse(options.body)); return { ok:true, json:async()=>({ok:true,status:'Abandonné'}) }; },
+    async (_, options) => { const payload=JSON.parse(options.body); calls.push(payload); return { ok:true, json:async()=>payload.business_type==='Panier abandonné / B2C'?{ok:true,status:'Abandonné'}:{ok:true} }; },
     {env:{MAKE_WEBHOOK_URL:'https://hook.eu1.make.com/test-only'}}, Buffer, AbortController, ()=>1, ()=>{});
   async function send(body, headers={}) {
     const res={headers:{},setHeader(k,v){this.headers[k]=v},end(v){this.body=JSON.parse(v)}};

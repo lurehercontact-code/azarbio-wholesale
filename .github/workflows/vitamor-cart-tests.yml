@@ -14,4 +14,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify cart capture and final order separation
-        run: node --test vitamor/tests/abandoned-cart.test.mjs
+        run: node --test vitamor/tests/abandoned-cart.test.mjs vitamor/tests/order-ack.test.mjs

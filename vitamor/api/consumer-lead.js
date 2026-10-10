@@ -167,24 +167,31 @@ export default async function handler(req, res) {
     return sendJson(res, 503, { ok: false, error: 'service_not_configured' });
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
     const response = await fetch(webhook, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'User-Agent': 'Vitamor-B2C-Vercel/1.0' },
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
-    clearTimeout(timer);
     if (!response.ok) {
       phoneStore.delete(phone);
       return sendJson(res, 502, { ok: false, error: 'upstream_error' });
+    }
+    // A paused Make webhook can return HTTP 200 "Accepted" without running
+    // the sheet writes. Only the final WebhookRespond JSON confirms completion.
+    const result = await response.json();
+    if (result?.ok !== true || result.ignored || result.status === 'Abandonné') {
+      phoneStore.delete(phone);
+      return sendJson(res, 502, { ok: false, error: 'order_not_saved' });
     }
     res.setHeader('Set-Cookie', 'vitamor_b2c_order_pending=' + now + '; Path=/; Max-Age=259200; HttpOnly; Secure; SameSite=Lax');
     return sendJson(res, 200, { ok: true, offer_package: offerPackage, order_total: offer.productTotal, shipping_fee: 0 });
   } catch (_) {
     phoneStore.delete(phone);
     return sendJson(res, 502, { ok: false, error: 'upstream_unavailable' });
-  }
+  } finally { clearTimeout(timer); }
 }
+
