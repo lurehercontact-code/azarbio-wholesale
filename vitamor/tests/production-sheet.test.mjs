@@ -53,22 +53,4 @@ test('manual cart information is carried into the final order',()=>{
  const f=fixture(),d=base();f.send(d);f.sheets['Abandonnés'].rows[1][6]='Adresse confirmée au téléphone';
  f.send({...d,mode:'order',name:'Test',city:'Rabat',address:'Older browser address'});assert.equal(f.sheets.Commandes.rows[1][6],'Adresse confirmée au téléphone');
 });
-test('website API to signed receiver: phone capture, final order, lost response retry and duplicate phone',async()=>{
- const {default:handler}=await import('../api/consumer-lead.js');
- process.env.DIRECT_SHEET_URL='https://script.google.com/macros/s/TEST_ONLY/exec';
- process.env.DIRECT_SHEET_SECRET='unit-test-only-key-not-used-in-production';
- const f=fixture(),old=globalThis.fetch;let loseResponse=false;
- globalThis.fetch=async(url,options)=>{
-   const result=f.ctx.doPost({postData:{contents:options.body}});
-   if(loseResponse){loseResponse=false;throw new TypeError('response lost after durable write');}
-   return Response.json(result);
- };
- const data={phone:'0600000000',offer_package:'1KG',client_elapsed_ms:5000,event_id:'test-e2e-event-0001'};
- async function send(body){const r={headers:{},setHeader(k,v){this.headers[k]=v},end(v){this.body=JSON.parse(v)}};await handler({method:'POST',headers:{'content-type':'application/json',host:'vitamor-fruits.vercel.app','x-forwarded-for':'e2e-fixture'},body},r);return r;}
- try{
-  const cart=await send({...data,capture_mode:'abandoned'});assert.equal(cart.statusCode,200);assert.equal(f.sheets['Abandonnés'].rows.length,2);assert.equal(cart.headers['Set-Cookie'],undefined);
-  loseResponse=true;
-  const order=await send({...data,name:'Test',city:'Rabat'});assert.equal(order.statusCode,200);assert.equal(order.body.duplicate,true);assert.equal(order.body.test,true);assert.equal(f.sheets.Commandes.rows.length,2);assert.equal(f.sheets['Abandonnés'].rows[1][2],'Envoyé');
-  const repeat=await send({...data,name:'Test',city:'Rabat',event_id:'test-e2e-other-event'});assert.equal(repeat.statusCode,409);assert.equal(repeat.body.error,'duplicate_phone');assert.equal(f.sheets.Commandes.rows.length,2);
- }finally{globalThis.fetch=old;}
-});
+// Legacy receiver remains covered above; the website now uses direct-crm.test.mjs.

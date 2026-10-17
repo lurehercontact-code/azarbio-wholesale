@@ -1,5 +1,5 @@
 import {randomUUID} from 'node:crypto';
-import {saveDirect} from '../lib/direct-sheet.js';
+import {saveCRM} from '../lib/direct-crm.js';
 
 const OFFERS={'500G':199,'1KG':299,'2KG_PLUS_500G':499};
 const WINDOW=600000;
@@ -34,10 +34,13 @@ export default async function handler(req,res){
   if(!/^[A-Za-z0-9_-]{8,80}$/.test(event))return send(res,400,{ok:false,error:'invalid_event_id'});
   const revision=Number(body.cart_updated_at);
   const data={mode,event_id:event,updated_at:Number.isFinite(revision)&&revision>0&&revision<=now+60000?Math.min(revision,now):now,phone,offer_package:offer,name,city,address:clean(body.address,220),utm_campaign:clean(body.utm_campaign,160),utm_source:clean(body.utm_source,120)||'Vitamor site',utm_content:clean(body.utm_content,160)};
-  const result=await saveDirect(data);
+  for(const key of ['utm_medium','utm_term','campaign_id','adset_id','adset_name','ad_id','ad_name','video_name','landing_page','referrer'])data[key]=clean(body[key],key==='landing_page'||key==='referrer'?600:200);
+  data.utm_source=clean(body.utm_source,120);
+  const ua=String(req.headers['user-agent']||'');data.browser=/Edg\//.test(ua)?'Edge':/CriOS|Chrome/.test(ua)?'Chrome':/FxiOS|Firefox/.test(ua)?'Firefox':/Safari/.test(ua)?'Safari':'unknown';
+  const result=await saveCRM(data);
   if(!result.ok)return send(res,result.error==='duplicate_phone'?409:result.error==='service_not_configured'?503:502,{ok:false,error:result.error});
   if(mode==='abandoned')return send(res,200,{ok:true,status:result.status});
-  // Only a confirmed Sheet write may hide the form or trigger a Lead.
+  // Only a durable CRM acknowledgement may hide the form or trigger a Lead.
   res.setHeader('Set-Cookie','vitamor_b2c_order_pending_v2='+now+'; Path=/; Max-Age=259200; HttpOnly; Secure; SameSite=Lax');
   return send(res,200,{ok:true,order_id:result.order_id,duplicate:result.duplicate===true,test:result.test===true,offer_package:offer,order_total:OFFERS[offer],shipping_fee:0});
 }
