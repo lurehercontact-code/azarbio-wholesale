@@ -9,7 +9,7 @@ export async function saveCRM(data){
  for(let attempt=0;attempt<2;attempt++){
   try{
    const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'X-CRM-Source':source},body:payload,signal:AbortSignal.timeout(8000),redirect:'error'});
-   if(!response.ok){if(response.status>=500||response.status===429)continue;let result={};try{result=await response.json()}catch{}return {ok:false,error:response.status===409?(result.error==='duplicate_phone'?'duplicate_phone':'order_changed'):'receiver_rejected'};}
+   if(!response.ok){if(response.status>=500||response.status===429)continue;let result={};try{result=await response.json()}catch{}if(response.status===409&&['Mise à jour concurrente. Réessayez avec le même identifiant','Conflit de modification ou stock insuffisant. Rechargez.'].includes(result.error)){error='receiver_conflict';continue;}return {ok:false,error:response.status===409?(result.error==='duplicate_phone'?'duplicate_phone':'order_changed'):'receiver_rejected'};}
    let result;try{result=await response.json()}catch{return {ok:false,error:'receiver_invalid_response'}};
    if(result?.deleted)return {ok:false,error:'order_deleted'};
    if(result?.ok!==true||typeof result.order_id!=='string'||!result.order_id||!['Abandonné','Envoyé'].includes(result.status)||(data.mode==='order'&&(result.status!=='Envoyé'||!Number.isFinite(result.order_total))))return {ok:false,error:'write_not_confirmed'};

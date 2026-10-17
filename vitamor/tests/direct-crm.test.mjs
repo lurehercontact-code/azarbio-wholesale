@@ -14,3 +14,11 @@ test('deleted, malformed and unacknowledged orders never report success',async()
 test('configuration fails closed and cannot forward credentials to another host',async()=>{
  const old=process.env.THANNATECH_CRM_URL;process.env.THANNATECH_CRM_URL='https://other.example/api/intake';try{assert.equal((await saveCRM(data)).error,'service_not_configured');}finally{process.env.THANNATECH_CRM_URL=old;}
 });
+
+test('a concurrent cart update retries the same final order, while a real payload conflict stays rejected',async()=>{
+ const old=globalThis.fetch;let calls=0;try{
+ globalThis.fetch=async()=>++calls===1?Response.json({ok:false,error:'Mise à jour concurrente. Réessayez avec le même identifiant'},{status:409}):Response.json({ok:true,order_id:'stable-id',status:'Envoyé',order_total:199});
+ assert.equal((await saveCRM(data)).ok,true);assert.equal(calls,2);
+ calls=0;globalThis.fetch=async()=>{calls++;return Response.json({ok:false,error:'Identifiant déjà utilisé pour une autre commande'},{status:409})};assert.equal((await saveCRM(data)).ok,false);assert.equal(calls,1);
+ }finally{globalThis.fetch=old;}
+});
