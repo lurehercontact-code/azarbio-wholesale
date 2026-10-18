@@ -6,7 +6,7 @@ export function resolveSubmitter(req,{key=process.env.THANNATECH_CRM_TOKEN||'',n
  if(key.length<32)return {identity:null,cookie:null};
  const raw=String(req.headers.cookie||'').split(';').map(v=>v.trim()).find(v=>v.startsWith(COOKIE+'='))?.slice(COOKIE.length+1)||'';
  let [device,expires,signature]=raw.split('.'),valid=false;
- if(/^[a-f0-9]{64}$/.test(device||'')&&/^\d{13}$/.test(expires||'')&&Number(expires)>now&&Number(expires)<=now+180*86400000&&/^[a-f0-9]{64}$/.test(signature||'')){
+ if(/^[a-f0-9]{64}$/.test(device||'')&&/^\d{13}$/.test(expires||'')&&Number(expires)>now&&Number(expires)<=now+181*86400000&&/^[a-f0-9]{64}$/.test(signature||'')){
   valid=timingSafeEqual(Buffer.from(signature,'hex'),Buffer.from(mac(key,'visitor-cookie:'+device+'.'+expires),'hex'));
  }
  if(!valid){device=randomBytes(32).toString('hex');expires=String(now+180*86400000);signature=mac(key,'visitor-cookie:'+device+'.'+expires);}
