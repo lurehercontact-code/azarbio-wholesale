@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {saveCRM} from '../lib/direct-crm.js';
+import {resolveSubmitter,setVisitorCookies} from '../lib/submitter.js';
 
 const OFFERS={'500G':199,'1KG':299,'2KG_PLUS_500G':499};
 const WINDOW=600000;
@@ -37,10 +38,12 @@ export default async function handler(req,res){
   for(const key of ['utm_medium','utm_term','campaign_id','adset_id','adset_name','ad_id','ad_name','video_name','landing_page','referrer'])data[key]=clean(body[key],key==='landing_page'||key==='referrer'?600:200);
   data.utm_source=clean(body.utm_source,120);
   const ua=String(req.headers['user-agent']||'');data.browser=/Edg\//.test(ua)?'Edge':/CriOS|Chrome/.test(ua)?'Chrome':/FxiOS|Firefox/.test(ua)?'Firefox':/Safari/.test(ua)?'Safari':'unknown';
+  const visitor=resolveSubmitter(req);data.submitter=visitor.identity;data.turnstile_token=typeof body.turnstile_token==='string'?body.turnstile_token.slice(0,2048):'';
   const result=await saveCRM(data);
-  if(!result.ok)return send(res,result.error==='duplicate_phone'?409:result.error==='service_not_configured'?503:502,{ok:false,error:result.error});
+  if(!result.ok)return send(res,result.error==='duplicate_phone'?409:['submitter_blocked','challenge_required'].includes(result.error)?403:result.error==='submitter_rate_limited'?429:result.error==='service_not_configured'?503:502,{ok:false,error:result.error,...(result.sitekey?{sitekey:result.sitekey}:{})});
+  if(mode==='abandoned')setVisitorCookies(res,visitor);
   if(mode==='abandoned')return send(res,200,{ok:true,status:result.status});
   // Only a durable CRM acknowledgement may hide the form or trigger a Lead.
-  res.setHeader('Set-Cookie','vitamor_b2c_order_pending_v2='+now+'; Path=/; Max-Age=259200; HttpOnly; Secure; SameSite=Lax');
+  setVisitorCookies(res,visitor,'vitamor_b2c_order_pending_v2='+now+'; Path=/; Max-Age=259200; HttpOnly; Secure; SameSite=Lax');
   return send(res,200,{ok:true,order_id:result.order_id,duplicate:result.duplicate===true,test:result.test===true,offer_package:offer,order_total:OFFERS[offer],shipping_fee:0});
 }

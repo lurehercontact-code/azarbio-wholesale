@@ -13,10 +13,10 @@ async function submit(response,extra={}){
 }
 test('queued HTTP 200 does not confirm or set pending, retry can succeed',async()=>{
  const failed=await submit(new Response('Accepted'));assert.equal(failed.statusCode,502);assert.equal(failed.headers['Set-Cookie'],undefined);
- const retry=await submit(Response.json({ok:true,status:'Envoyé',order_id:'TEST-1',order_total:299}));assert.equal(retry.statusCode,200);assert.match(retry.headers['Set-Cookie'],/vitamor_b2c_order_pending_v2=/);
+ const retry=await submit(Response.json({ok:true,status:'Envoyé',order_id:'TEST-1',order_total:299}));assert.equal(retry.statusCode,200);assert.match(String(retry.headers['Set-Cookie']),/vitamor_b2c_order_pending_v2=/);
 });
 test('only the current receiver and completed order acknowledgement can confirm',async()=>{
- for(const body of [{ok:true,status:'Envoyé',order_id:'old'}, {ok:false}, {ok:true,receiver_version:2,status:'Abandonné'},null]){const r=await submit(Response.json(body));assert.equal(r.statusCode,502);assert.equal(r.headers['Set-Cookie'],undefined);}
+ for(const body of [{ok:true,status:'Envoyé',order_id:'old'}, {ok:false}, {ok:true,receiver_version:2,status:'Abandonné'},null]){const r=await submit(Response.json(body));assert.equal(r.statusCode,502);assert.doesNotMatch(String(r.headers['Set-Cookie']||''),/vitamor_b2c_order_pending_v2=/);}
 });
 test('a lost response is retried with the same CRM payload',async()=>{
  let attempts=0;const r=await submit(()=>{if(++attempts===1)throw new TypeError('network');return Response.json({ok:true,status:'Envoyé',order_id:'TEST-1',order_total:299,duplicate:true})});assert.equal(attempts,2);assert.equal(r.statusCode,200);assert.equal(r.body.duplicate,true);
@@ -28,5 +28,5 @@ test('upstream failures are bounded and cannot mark an order saved',async()=>{
  let attempts=0;const r=await submit(()=>{attempts++;return new Response('Unavailable',{status:503})});assert.equal(attempts,2);assert.equal(r.statusCode,502);assert.equal(r.headers['Set-Cookie'],undefined);
 });
 test('phone-only capture and completed captures do not set pending cookies',async()=>{
- for(const status of ['Abandonné','Envoyé']){const r=await submit(Response.json({ok:true,order_id:'cart-1',status}),{capture_mode:'abandoned',name:'',city:''});assert.equal(r.statusCode,200);assert.equal(r.headers['Set-Cookie'],undefined);}
+ for(const status of ['Abandonné','Envoyé']){const r=await submit(Response.json({ok:true,order_id:'cart-1',status}),{capture_mode:'abandoned',name:'',city:''});assert.equal(r.statusCode,200);assert.doesNotMatch(String(r.headers['Set-Cookie']||''),/vitamor_b2c_order_pending_v2=/);}
 });
