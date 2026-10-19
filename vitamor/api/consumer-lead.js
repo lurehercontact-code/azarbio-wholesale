@@ -2,7 +2,7 @@ import {randomUUID} from 'node:crypto';
 import {saveCRM} from '../lib/direct-crm.js';
 import {resolveSubmitter,setVisitorCookies} from '../lib/submitter.js';
 
-const OFFERS={'500G':199,'1KG':299,'2KG_PLUS_500G':499};
+const OFFERS={'500G':199,'1KG':299,'2KG_PLUS_500G':499,'MARCHMILO_50G':69,'NOGA_100G':69,'TRIO_CROQUANT':229};
 const WINDOW=600000;
 const rates=globalThis.__vitamorDirectRates||new Map();
 globalThis.__vitamorDirectRates=rates;
@@ -20,7 +20,16 @@ export default async function handler(req,res){
   const now=Date.now(),mode=body.capture_mode==='abandoned'?'abandoned':'order';
   const phone=phoneNumber(body.phone),offer=clean(body.offer_package,24);
   if(!phone)return send(res,400,{ok:false,error:'invalid_phone'});
-  if(!Object.hasOwn(OFFERS,offer))return send(res,400,{ok:false,error:'invalid_offer'});
+  const requested=Array.isArray(body.items)?body.items:[{offer_package:offer,count:1}];
+  if(!requested.length||requested.length>20)return send(res,400,{ok:false,error:'invalid_items'});
+  const counts=new Map();
+  for(const item of requested){
+   if(!item||typeof item!=='object'||!Object.hasOwn(OFFERS,item.offer_package)||!Number.isSafeInteger(item.count??1)||(item.count??1)<1||(item.count??1)>20)return send(res,400,{ok:false,error:'invalid_offer'});
+   counts.set(item.offer_package,(counts.get(item.offer_package)||0)+(item.count??1));
+  }
+  if([...counts.values()].some(n=>n>20))return send(res,400,{ok:false,error:'invalid_quantity'});
+  const items=[...counts].sort(([a],[b])=>a.localeCompare(b)).map(([offer_package,count])=>({offer_package,count}));
+  const orderTotal=items.reduce((sum,item)=>sum+OFFERS[item.offer_package]*item.count,0);
   const name=clean(body.name,100),city=clean(body.city,80);
   if(mode==='order'&&name.length<2)return send(res,400,{ok:false,error:'invalid_name'});
   if(mode==='order'&&city.length<2)return send(res,400,{ok:false,error:'invalid_city'});
@@ -35,6 +44,7 @@ export default async function handler(req,res){
   if(!/^[A-Za-z0-9_-]{8,80}$/.test(event))return send(res,400,{ok:false,error:'invalid_event_id'});
   const revision=Number(body.cart_updated_at);
   const data={mode,event_id:event,updated_at:Number.isFinite(revision)&&revision>0&&revision<=now+60000?Math.min(revision,now):now,phone,offer_package:offer,name,city,address:clean(body.address,220),utm_campaign:clean(body.utm_campaign,160),utm_source:clean(body.utm_source,120)||'Vitamor site',utm_content:clean(body.utm_content,160)};
+  data.items=items;
   for(const key of ['utm_medium','utm_term','campaign_id','adset_id','adset_name','ad_id','ad_name','video_name','landing_page','referrer'])data[key]=clean(body[key],key==='landing_page'||key==='referrer'?600:200);
   data.utm_source=clean(body.utm_source,120);
   const ua=String(req.headers['user-agent']||'');data.browser=/Edg\//.test(ua)?'Edge':/CriOS|Chrome/.test(ua)?'Chrome':/FxiOS|Firefox/.test(ua)?'Firefox':/Safari/.test(ua)?'Safari':'unknown';
@@ -45,5 +55,5 @@ export default async function handler(req,res){
   if(mode==='abandoned')return send(res,200,{ok:true,status:result.status});
   // Only a durable CRM acknowledgement may hide the form or trigger a Lead.
   setVisitorCookies(res,visitor,'vitamor_b2c_order_pending_v2='+now+'; Path=/; Max-Age=259200; HttpOnly; Secure; SameSite=Lax');
-  return send(res,200,{ok:true,order_id:result.order_id,duplicate:result.duplicate===true,test:result.test===true,offer_package:offer,order_total:OFFERS[offer],shipping_fee:0});
+  return send(res,200,{ok:true,order_id:result.order_id,duplicate:result.duplicate===true,test:result.test===true,offer_package:offer,order_total:result.order_total??orderTotal,shipping_fee:0});
 }
