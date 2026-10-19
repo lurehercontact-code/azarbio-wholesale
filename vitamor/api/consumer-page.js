@@ -1,3 +1,4 @@
+import {renderNewProductsPreview} from '../lib/new-products.js';
 import {resolveSubmitter,setVisitorCookies} from '../lib/submitter.js';
 const html = String.raw`<!doctype html>
 <html lang="ar" dir="rtl">
@@ -187,6 +188,6 @@ export default function handler(req, res) {
   } else {
     page = page.replace('<nav class="language-switcher" aria-label="Choisir la langue">', '<nav class="language-switcher" aria-label="اختيار اللغة">');
   }
+  if (new URL(req.url || '/', 'https://vitamor.local').searchParams.get('catalog') === 'preview') page = page.replace('</main>', renderNewProductsPreview(lang) + '</main>');
   res.end(page.replace('__PENDING_UNTIL__', String(until)).replace('<body data-pending', (until ? '<body class="pending-active" data-pending' : '<body data-pending')));
 }
-
