@@ -1,0 +1,1 @@
+{"name":"thannatech-storefront-module","private":true,"type":"module","engines":{"node":">=24"},"scripts":{"test":"node --test tests/storefront.test.mjs"}}

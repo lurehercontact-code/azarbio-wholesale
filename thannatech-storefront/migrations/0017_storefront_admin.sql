@@ -1,0 +1,6 @@
+CREATE TABLE storefronts(brand_id TEXT PRIMARY KEY REFERENCES brands(id),slug TEXT NOT NULL UNIQUE,draft TEXT NOT NULL,draft_revision INTEGER NOT NULL DEFAULT 0,published TEXT,published_revision INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL,updated_by TEXT NOT NULL REFERENCES users(id));
+CREATE TABLE storefront_versions(id TEXT PRIMARY KEY,brand_id TEXT NOT NULL REFERENCES storefronts(brand_id),version INTEGER NOT NULL,config TEXT NOT NULL,created_at TEXT NOT NULL,created_by TEXT NOT NULL REFERENCES users(id),UNIQUE(brand_id,version));
+CREATE TABLE storefront_media(id TEXT PRIMARY KEY,brand_id TEXT NOT NULL REFERENCES brands(id),mime TEXT NOT NULL,data TEXT NOT NULL,created_at TEXT NOT NULL,created_by TEXT NOT NULL REFERENCES users(id));
+CREATE TABLE storefront_events(id TEXT PRIMARY KEY,brand_id TEXT NOT NULL REFERENCES brands(id),session_id TEXT NOT NULL,event TEXT NOT NULL,product_id TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL);
+CREATE INDEX storefront_event_report ON storefront_events(brand_id,created_at,event);
+CREATE TABLE storefront_receipts(brand_id TEXT NOT NULL REFERENCES brands(id),event_id TEXT NOT NULL,request_hash TEXT NOT NULL,payload TEXT NOT NULL,order_id TEXT REFERENCES orders(id),created_at TEXT NOT NULL,PRIMARY KEY(brand_id,event_id));
