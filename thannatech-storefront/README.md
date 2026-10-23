@@ -15,6 +15,8 @@ Prepared 2026-10-23 for the existing Cloudflare CRM. This module has NOT yet bee
 
 `npm test` in this packet: 10 tests pass using Node 24 and SQLite. They cover draft privacy/versioning, stale-write prevention, admin/brand permissions, store-only prices, bundle aggregate stock, coupons/shipping, signed visitor cookies, idempotent checkout retries, phone/cart input, composed offers, hidden data and cross-origin writes. Syntax checks passed for the changed modules.
 
+Desktop design preview was tested through actual browser interactions: selecting 1 kg fruit plus two marshmallow sachets gives 437 MAD, with free delivery and disabled preview checkout.
+
 The full 99-test CRM suite, real integration with submitter protection, signed-in browser testing, actual iPhone/Android checkout, and production deployment remain to run once the PC is connected. Do not represent the preview as a functioning live store.
 
 ## Integration when the PC is online
