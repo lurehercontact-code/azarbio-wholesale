@@ -9,7 +9,7 @@ change('src/operations.js',s=>"import {boutiquesAPI} from './storefront.js';\n"+
 change('src/worker.js',s=>{
  s="import {storefrontPublic} from './storefront.js';\n"+s;
  s=once(s,' const db=env.DB,path=url.pathname,method=req.method;'," const db=env.DB,path=url.pathname,method=req.method;\n if(path.startsWith('/api/storefront/')){const result=await storefrontPublic(req,env,url,{body,ingest,admitSubmitter,recordSubmitter});if(result!==undefined)return result;}");
- s=once(s,'(intake|orders|sheets|loyalty)','(intake|orders|sheets|loyalty|storefront)');
+ s=once(s,'(intake|orders|sheets|loyalty)','(intake|orders|sheets|loyalty|storefront\\/[a-z0-9-]+\\/checkout)');
  s=once(s,'const r=await env.ASSETS.fetch(req),h=new Headers(r.headers);',"const shop=/^\\/shop\\/[a-z0-9-]+(?:\\/.*)?$/.test(url.pathname),assetRequest=shop?new Request(new URL('/store.html',url),req):req;\n   const r=await env.ASSETS.fetch(assetRequest),h=new Headers(r.headers);");
  s=once(s,"h.set('X-Content-Type-Options','nosniff');h.set('Referrer-Policy'", "if(shop)h.set('Content-Security-Policy',\"default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://connect.facebook.net https://www.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms; style-src 'self'; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' https://challenges.cloudflare.com https://www.facebook.com https://www.google-analytics.com https://region1.google-analytics.com https://*.clarity.ms; frame-src 'self' https://challenges.cloudflare.com; frame-ancestors 'self'; base-uri 'none'; form-action 'self'\");\n   h.set('X-Content-Type-Options','nosniff');h.set('Referrer-Policy'");return s;
 });
