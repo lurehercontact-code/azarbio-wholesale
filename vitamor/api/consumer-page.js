@@ -1,3 +1,4 @@
+import {infoPage,decorateStore} from '../lib/storefront-info.js';
 import {resolveSubmitter,setVisitorCookies} from '../lib/submitter.js';
 const html = String.raw`<!doctype html>
 <html lang="ar" dir="rtl">
@@ -169,6 +170,8 @@ export default function handler(req, res) {
   const until = Number.isFinite(startedAt) && startedAt > 0 && startedAt <= now && now - startedAt < 259200000 ? startedAt + 259200000 : 0;
   const requestedLang = new URL(req.url || '/', 'https://vitamor.local').searchParams.get('lang');
   const lang = requestedLang === 'fr' ? 'fr' : 'ar';
+  const info = infoPage(new URL(req.url || '/', 'https://vitamor.local').searchParams.get('page'), lang);
+  if(info){res.end(info);return}
   let page = html;
   if (lang === 'fr') {
     for (const [source, target] of frenchTranslations.slice().sort((a, b) => b[0].length - a[0].length)) page = page.replaceAll(source, target);
@@ -176,6 +179,7 @@ export default function handler(req, res) {
   } else {
     page = page.replace('<nav class="language-switcher" aria-label="Choisir la langue">', '<nav class="language-switcher" aria-label="اختيار اللغة">');
   }
+  page = decorateStore(page,lang);
   // The complete catalogue is now the main storefront.
   res.end(page.replace('__PENDING_UNTIL__', String(until)).replace('<body data-pending', (until ? '<body class="pending-active" data-pending' : '<body data-pending')));
 }
