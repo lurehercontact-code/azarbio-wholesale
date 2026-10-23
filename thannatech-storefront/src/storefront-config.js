@@ -41,7 +41,7 @@ export function validateStore(value){
  c.sections=[...new Set(arr(c.sections,8))];if(c.sections.some(x=>!['products','pack','story','faq','reviews'].includes(x)))error(400,'Section invalide');
  c.story={title:text(c.story?.title,120),text:text(c.story?.text,2000),video:assetURL(c.story?.video)};
  c.faq=arr(c.faq||[],16).map(x=>({question:text(x.question,160),answer:text(x.answer,1500)}));
- c.policies=Object.fromEntries(["about", "delivery", "returns", "privacy", "subscribe", "storage", "contact"].map(k=>[k,text(c.policies?.[k],5000)]));
+ c.policies=Object.fromEntries(["about", "delivery", "returns", "privacy", "subscribe", "storage", "contact"].map(k=>[k,String(c.policies?.[k]??'').replace(/\r\n?/g,'\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g,' ').trim().slice(0,5000)]));
  c.reviews=arr(c.reviews||[],30).map(x=>({name:text(x.name,100),city:text(x.city,80),text:text(x.text,1200),rating:Math.min(5,Math.max(1,Math.round(Number(x.rating)||5))),verified:!!x.verified}));
  c.offerEdits=unique(arr(c.offerEdits||[],100).map(x=>({id:text(x.id,100),name:text(x.name,200),price:cents(x.price),active:!!x.active})),'id');
  c.marketing={metaPixelId:text(c.marketing?.metaPixelId,30),gaId:text(c.marketing?.gaId,30),clarityId:text(c.marketing?.clarityId,30)};
