@@ -42,3 +42,11 @@ The last known CRM commit is `2e5c576`. Read `AGENTS.md` if one now exists; insp
 ## Storage notes
 
 The first version optimizes raster uploads to at most 300 KB and stores media in D1. This keeps setup simple; moving larger galleries or video hosting to R2 is a later optimization. Video fields accept an existing HTTPS video URL. No paid provider or subscription is enabled by this code.
+
+## Store information update — 2026-10-23
+
+Added editable Arabic about, delivery/payment, exchanges/returns, privacy, preservation/allergens, customer support and WhatsApp subscription-request pages, linked from the footer with shareable #info/<key> URLs. The subscription requires an unchecked affirmative consent and only prepares a WhatsApp message; the visitor must send it. There is no automatic mailing list enrollment or marketing transmission. Cookie choice can be reset from the footer.
+
+Before real launch, complete verified seller legal identity (RC/ICE/address where applicable), CNDP declaration/authorization details and any cross-border processing formalities; never fabricate registration numbers. Validate actual ingredient labels and support procedures. Policies preserve statutory remedies; food is not universally excluded from withdrawal. No stock, existing customer or carrier data was modified.
+
+Primary references reviewed: https://www.cndp.ma/conformite-des-sites-web/ and https://www.mcinet.gov.ma/sites/default/files/Guide%20du%20consommateur%20-%20FR.pdf (law 31-08).
