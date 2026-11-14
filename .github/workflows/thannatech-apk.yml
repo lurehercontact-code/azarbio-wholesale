@@ -44,7 +44,22 @@ jobs:
         run: |
           mkdir -p android-project
           base64 -d thannatech-android/source.b64 > /tmp/thannatech-project.zip
-          unzip -q /tmp/thannatech-project.zip -d android-project
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          root=Path('android-project').resolve()
+          with ZipFile('/tmp/thannatech-project.zip') as z:
+              for entry in z.infolist():
+                  relative=Path(entry.filename.replace(chr(92),'/'))
+                  if relative.is_absolute() or '..' in relative.parts:
+                      raise ValueError('Unsafe ZIP entry')
+                  output=root/relative
+                  if entry.is_dir():
+                      output.mkdir(parents=True,exist_ok=True)
+                  else:
+                      output.parent.mkdir(parents=True,exist_ok=True)
+                      output.write_bytes(z.read(entry))
+          PY
           test -f android-project/app/src/main/java/ma/vitamor/thannatech/MainActivity.java
 
       - name: Create release signing key
