@@ -53,12 +53,11 @@ jobs:
                   relative=Path(entry.filename.replace(chr(92),'/'))
                   if relative.is_absolute() or '..' in relative.parts:
                       raise ValueError('Unsafe ZIP entry')
+                  if relative.suffix.lower() not in {'.gradle','.properties','.xml','.java'}:
+                      continue
                   output=root/relative
-                  if entry.is_dir():
-                      output.mkdir(parents=True,exist_ok=True)
-                  else:
-                      output.parent.mkdir(parents=True,exist_ok=True)
-                      output.write_bytes(z.read(entry))
+                  output.parent.mkdir(parents=True,exist_ok=True)
+                  output.write_bytes(z.read(entry))
           PY
           test -f android-project/app/src/main/java/ma/vitamor/thannatech/MainActivity.java
 
